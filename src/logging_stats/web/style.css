@@ -311,3 +311,4 @@ section { scroll-margin-top: 20px; }
 @media (max-width: 800px) { .trend-grid { grid-template-columns: 1fr; } }
 
 .age-chart svg { display: block; width: 100%; height: auto; margin: 12px 0; }
+.waiting a { overflow-wrap: anywhere; }
