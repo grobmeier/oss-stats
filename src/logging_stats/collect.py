@@ -14,7 +14,7 @@ from pathlib import Path
 from urllib.parse import urljoin
 
 from .config import email_identity, identity, modules
-from .github import COMMENTS, DISCUSSIONS, REPLIES
+from .github import COMMENTS, DISCUSSIONS, REPLIES, item_query
 from .timeutil import norm_ts, parse_ts
 
 
@@ -96,13 +96,24 @@ def collect_discussions(api, project, config, previous=(), since=None, limit=Non
                                  lambda d: d["repository"]["discussions"], limit)
     old_records = {r["id"]: r for r in previous}
     records = dict(old_records) if since else {}
+    def expand(initial, query, node_id, field):
+        rows = list(initial["nodes"])
+        seen = set()
+        while initial["pageInfo"]["hasNextPage"]:
+            cursor = initial["pageInfo"]["endCursor"]
+            if not cursor or cursor in seen:
+                raise RuntimeError("Discussion pagination stopped advancing")
+            seen.add(cursor)
+            initial = api.call("graphql", query, {"id": node_id, "cursor": cursor})["node"][field]
+            rows.extend(initial["nodes"])
+        return rows
     for index, item in enumerate(discussions, 1):
         if since and item["updatedAt"] < since and item["id"] in records:
             continue
-        comments = api.connection(COMMENTS, {"id": item["id"]}, lambda d: d["node"]["comments"])
+        comments = expand(item["comments"], COMMENTS, item["id"], "comments") if "comments" in item else api.connection(COMMENTS, {"id": item["id"]}, lambda d: d["node"]["comments"])
         replies = []
         for comment in comments:
-            replies.extend(api.connection(REPLIES, {"id": comment["id"]}, lambda d: d["node"]["replies"]))
+            replies.extend(expand(comment["replies"], REPLIES, comment["id"], "replies") if "replies" in comment else api.connection(REPLIES, {"id": comment["id"]}, lambda d: d["node"]["replies"]))
         record = {
             "id": item["id"], "number": item["number"], "title": item["title"], "url": item["url"],
             "created_at": norm_ts(item["createdAt"]), "updated_at": norm_ts(item["updatedAt"]),
@@ -119,6 +130,78 @@ def collect_discussions(api, project, config, previous=(), since=None, limit=Non
         if checkpoint and index % 10 == 0:
             checkpoint(list(records.values()))
     return list(records.values())
+
+
+def collect_batched_items(api, project, config, kind, since, previous=(), limit=None, checkpoint=None, full=False):
+    owner, name = project["repo"].split("/")
+    collection = "pullRequests" if kind == "pulls" else "issues"
+    records = {r["id"]: r for r in previous}
+    seen = set()
+    type_map = {"ClosedEvent": "closed", "ReopenedEvent": "reopened", "ConvertedToDiscussionEvent": "converted_to_discussion",
+                "MergedEvent": "merged", "ReadyForReviewEvent": "ready_for_review", "ConvertToDraftEvent": "convert_to_draft"}
+    def expand(item, field):
+        initial = item[field]
+        rows = list(initial["nodes"])
+        cursor = initial["pageInfo"]["endCursor"]
+        visited = set()
+        while initial["pageInfo"]["hasNextPage"]:
+            if not cursor or cursor in visited:
+                raise RuntimeError("Nested pagination stopped advancing")
+            visited.add(cursor)
+            initial = api.call("graphql", item_query(kind, field), {"id": item["id"], "cursor": cursor})["node"][field]
+            rows.extend(initial["nodes"])
+            cursor = initial["pageInfo"]["endCursor"]
+        if "totalCount" in item[field] and len(rows) != item[field]["totalCount"]:
+            raise RuntimeError("GitHub connection count differs from fetched records. Coverage is incomplete.")
+        return rows
+    processed = 0
+    for open_only in (False, True):
+        cursor, cursors = None, set()
+        stop = False
+        while not stop:
+            result = api.call("graphql", item_query(kind, open_only=open_only), {"owner": owner, "name": name, "cursor": cursor})
+            connection = result["repository"][collection]
+            for item in connection["nodes"]:
+                if not full and not open_only and item["updatedAt"] < since:
+                    stop = True
+                    break
+                if item["id"] in seen:
+                    continue
+                seen.add(item["id"])
+                old = records.get(item["id"])
+                if not full and old and old.get("updated_at") == norm_ts(item["updatedAt"]) and old.get("details_complete"):
+                    continue
+                events = expand(item, "timelineItems")
+                row = {"id": item["id"], "number": item["number"], "title": item["title"], "url": item["url"],
+                       "created_at": norm_ts(item["createdAt"]), "updated_at": norm_ts(item["updatedAt"]),
+                       "closed_at": norm_ts(item.get("closedAt")), "state": "open" if item["state"] == "OPEN" else "closed",
+                       "actor": actor(item.get("author"), config), "kind": kind, "history": "events", "details_complete": True,
+                       "comments": [normal_comment(c, config, True) for c in expand(item, "comments")],
+                       "events": [{"id": e["id"], "at": norm_ts(e["createdAt"]), "kind": type_map[e["__typename"]]} for e in events]}
+                if kind == "pulls":
+                    row.update(draft=item["isDraft"], merged_at=norm_ts(item.get("mergedAt")),
+                               reviews=[{"id": r["id"], "actor": actor(r.get("author"), config), "at": norm_ts(r["submittedAt"])}
+                                        for r in expand(item, "reviews") if r.get("submittedAt")],
+                               modules=modules([f["path"] for f in expand(item, "files")], project))
+                records[row["id"]] = row
+                processed += 1
+                if checkpoint and processed % 25 == 0:
+                    checkpoint(list(records.values()))
+                if processed % 250 == 0:
+                    print(f"  {project['id']}:{kind}: {processed} items read", flush=True)
+                if limit and processed >= limit:
+                    return list(records.values())
+            info = connection["pageInfo"]
+            if not info["hasNextPage"]:
+                break
+            cursor = info["endCursor"]
+            if not cursor or cursor in cursors:
+                raise RuntimeError("Item pagination stopped advancing")
+            cursors.add(cursor)
+        if full or limit:
+            # A full traversal already includes old open items.
+            break
+    return [row for key, row in records.items() if not full or key in seen]
 
 
 def git_records(project, config, cache, start):
@@ -218,13 +301,23 @@ def release_records(api, project):
     rows.extend({"id": version, "version": version, "line": version.split(".")[0] + ".x", "at": None,
                  "date_kind": "publication date unavailable", "url": url, "archive_url": url, "verified": True}
                 for version, url in versions.items() if version not in dated)
+    known = {r["id"] for r in rows}
+    for tag in api.pages(f"repos/{project['repo']}/tags"):
+        match = re.fullmatch(project["release_pattern"], tag["name"])
+        if match:
+            version = match["version"].replace("_", ".")
+            if version not in known:
+                rows.append({"id": version, "version": version, "line": version.split(".")[0] + ".x", "at": None,
+                             "date_kind": "tag only, official distribution unverified", "verified": False,
+                             "url": "https://github.com/" + project["repo"] + "/releases/tag/" + tag["name"], "archive_url": project["archive"]})
+                known.add(version)
     return rows
 
 
 def run(api, store, config, at, start, limit=None, full=False, git=True, mail=True, budget_projects=None):
     """Checkpoint each source independently. Partial samples never become full data."""
     projects = config["projects"] if budget_projects is None else [p for p in config["projects"] if p["id"] in budget_projects]
-    def collect(source, fetch, **extra):
+    def collect(source, fetch, sampled=False, **extra):
         print(f"Collecting {source}", flush=True)
         old = store.state.get(source, {})
         try:
@@ -236,8 +329,8 @@ def run(api, store, config, at, start, limit=None, full=False, git=True, mail=Tr
                     observations = row.setdefault("observations", [])
                     if not observations or any(observations[-1].get(k) != v for k, v in observation.items() if k != "at"):
                         observations.append(observation)
-            info = dict(extra, status="partial" if limit else "complete", last_success=at,
-                        attempted_at=at, coverage_start=start, reason="Bounded live sample" if limit else "",
+            info = dict(extra, status="partial" if limit and sampled else "complete", last_success=at,
+                        attempted_at=at, coverage_start=start, reason="Bounded live sample" if limit and sampled else "",
                         first_observed=old.get("first_observed", at))
             store.save(source, rows, info)
         except Exception as error:
@@ -278,16 +371,8 @@ def run(api, store, config, at, start, limit=None, full=False, git=True, mail=Tr
             if channel == "discussions":
                 fetch = lambda: collect_discussions(api, project, config, previous, since if incremental else None, limit, checkpoint)
             else:
-                def fetch():
-                    rows = collect_items(api, project, config, channel, since, previous, limit, checkpoint)
-                    if full and not limit:
-                        # Reconciliation includes all old items, even closed
-                        # before the reporting window, to detect deletions.
-                        index = api.pages(f"repos/{project['repo']}/issues?state=all")
-                        live_ids = {str(r["node_id"]) for r in index if ("pull_request" in r) == (channel == "pulls")}
-                        rows = [r for r in rows if r["id"] in live_ids]
-                    return rows
-            collect(source, fetch, repo_id=str(metadata["id"]))
+                fetch = lambda: collect_batched_items(api, project, config, channel, since, previous, limit, checkpoint, full and not limit)
+            collect(source, fetch, sampled=True, repo_id=str(metadata["id"]))
         if git:
             collect(f"{pid}:commits", lambda: git_records(project, config, store.root / "git", start),
                     branches=[project["branch"]] + project.get("branches", []), full_identity_history=True)
@@ -304,7 +389,7 @@ def run(api, store, config, at, start, limit=None, full=False, git=True, mail=Tr
         if previous and old.get("status") == "complete":
             months = [m for m in months if m >= old["last_success"][:7]]
         months = sorted(set(months + [at[:7]]))
-        collect("logging:mail", lambda: previous + mail_records(config, months), coverage_months=months)
+        collect("logging:mail", lambda: previous + mail_records(config, months), sampled=True, coverage_months=months)
     else:
         store.fail("logging:mail", "unavailable", "Mail collection omitted for this run", at)
     return store.state
