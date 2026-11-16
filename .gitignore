@@ -9,3 +9,6 @@ build/
 data/
 site/
 .cache/
+
+.playwright-cli/
+output/

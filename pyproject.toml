@@ -19,5 +19,8 @@ logging-stats = "logging_stats.cli:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+logging_stats = ["web/*"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
