@@ -18,6 +18,10 @@ from .github import COMMENTS, DISCUSSIONS, REPLIES, item_query
 from .timeutil import norm_ts, parse_ts
 
 
+def now():
+    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 def actor(user, config):
     if not user or user.get("type", user.get("__typename")) == "Bot":
         return None
@@ -243,6 +247,8 @@ def read_url(url):
 
 
 def parse_mbox(raw, config):
+    if raw.lstrip().lower().startswith((b"{", b"<html", b"<!doctype")):
+        raise RuntimeError("The mailing archive returned an error document instead of an mbox")
     rows = []
     chunks = re.split(br"(?m)^From [^\n]*\n", raw)
     for chunk in chunks:
@@ -320,18 +326,20 @@ def run(api, store, config, at, start, limit=None, full=False, git=True, mail=Tr
     def collect(source, fetch, sampled=False, **extra):
         print(f"Collecting {source}", flush=True)
         old = store.state.get(source, {})
+        attempted_at = now()
         try:
             rows = fetch()
+            finished_at = now()
             for row in rows:
                 if row.get("history") == "observed":
-                    observation = {"at": at, "state": row["state"], "answer_id": row.get("answer_id"),
+                    observation = {"at": finished_at, "state": row["state"], "answer_id": row.get("answer_id"),
                                    "answerable": row.get("answerable", False)}
                     observations = row.setdefault("observations", [])
                     if not observations or any(observations[-1].get(k) != v for k, v in observation.items() if k != "at"):
                         observations.append(observation)
-            info = dict(extra, status="partial" if limit and sampled else "complete", last_success=at,
-                        attempted_at=at, coverage_start=start, reason="Bounded live sample" if limit and sampled else "",
-                        first_observed=old.get("first_observed", at))
+            info = dict(extra, status="partial" if limit and sampled else "complete", last_success=finished_at,
+                        attempted_at=attempted_at, watermark=attempted_at, coverage_start=start, reason="Bounded live sample" if limit and sampled else "",
+                        first_observed=old.get("first_observed", finished_at))
             info["excluded_actor_events"] = sum("actor" in row and not row["actor"] for row in rows)
             info["excluded_actor_events"] += sum(not event.get("actor") for row in rows for key in ("comments", "reviews") for event in row.get(key, []))
             info["scope_history"] = old.get("scope_history", [])
@@ -341,7 +349,7 @@ def run(api, store, config, at, start, limit=None, full=False, git=True, mail=Tr
         except Exception as error:
             # Provider errors are bounded and do not print raw data.
             reason = str(error) if isinstance(error, RuntimeError) else type(error).__name__ + ": source read failed"
-            store.fail(source, "failed", reason[:300], at)
+            store.fail(source, "failed", reason[:300], attempted_at)
             print(f"  {source}: {reason[:300]}", flush=True)
     for project in projects:
         pid = project["id"]
@@ -369,7 +377,7 @@ def run(api, store, config, at, start, limit=None, full=False, git=True, mail=Tr
             # Partial checkpoints permit recovery after a rate limit without
             # repeating every completed nested read.
             previous = store.get(source)
-            since = norm_ts((parse_ts(old["last_success"]) - timedelta(days=2)).isoformat()) if incremental else start
+            since = norm_ts((parse_ts(old.get("watermark", old["last_success"])) - timedelta(days=2)).isoformat()) if incremental else start
             def checkpoint(rows):
                 store.save(source, rows, dict(old, status="partial", reason="Collection in progress or interrupted",
                            attempted_at=at, coverage_start=old.get("coverage_start", start)))

@@ -1,5 +1,7 @@
 import json
 
+import pytest
+
 from logging_stats.collect import actor, archive_versions, collect_discussions, collect_items, normal_event, parse_mbox
 from logging_stats.config import load, modules
 from logging_stats.github import GitHub
@@ -59,3 +61,8 @@ def test_modules_overlap_without_duplicate_labels():
 
 def test_conversion_event_retains_provenance():
     assert normal_event({"id": 4, "event": "converted_to_discussion", "created_at": "2026-01-01T00:00:00Z"})["kind"] == "converted_to_discussion"
+
+
+def test_mail_error_document_does_not_become_empty_success():
+    with pytest.raises(RuntimeError, match="error document"):
+        parse_mbox(b'{"error":"mailbox unavailable"}', load())
