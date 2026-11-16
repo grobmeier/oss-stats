@@ -1,0 +1,57 @@
+definition_version: "1.0"
+title: Apache Logging community activity
+base_path: /logging/
+target_url: https://stats.grobmeier.de/logging/
+history_months: 72
+sample_floor: 5
+stale_days: 28
+identity_aliases: {}
+bot_patterns: ['(?i)\[bot\]$', '(?i)^dependabot', '(?i)^renovate', '(?i)^github-actions', '(?i)notifications@github\.com']
+projects:
+  - id: log4j
+    name: Log4j
+    repo: apache/logging-log4j2
+    archive: https://archive.apache.org/dist/logging/log4j/
+    release_pattern: '(?:apache-log4j-|rel/|log4j-)?(?P<version>\d+\.\d+\.\d+)'
+    modules:
+      API: [log4j-api/]
+      Core: [log4j-core/]
+      Bridges and adapters: [log4j-1.2-api/, log4j-jcl/, log4j-jul/, log4j-slf4j-impl/, log4j-slf4j2-impl/, log4j-to-slf4j/]
+      Documentation: [src/site/, docs/, README]
+      Build and release: [.github/, .mvn/, pom.xml, log4j-bom/]
+  - id: kotlin
+    name: Log4j Kotlin
+    repo: apache/logging-log4j-kotlin
+    archive: https://archive.apache.org/dist/logging/log4j-kotlin/
+    release_pattern: '(?:rel/|log4j-kotlin-)?(?P<version>\d+\.\d+\.\d+)'
+  - id: log4cxx
+    name: Log4cxx
+    repo: apache/logging-log4cxx
+    archive: https://archive.apache.org/dist/logging/log4cxx/
+    release_pattern: '(?:rel/|apache-log4cxx-|v)?(?P<version>\d+\.\d+\.\d+)'
+    jira: https://issues.apache.org/jira/browse/LOGCXX
+  - id: log4net
+    name: Log4net
+    repo: apache/logging-log4net
+    archive: https://archive.apache.org/dist/logging/log4net/
+    release_pattern: '(?:rel/|rel_|log4net-|v)?(?P<version>\d+[._]\d+[._]\d+)'
+  - id: flume
+    name: Flume
+    repo: apache/logging-flume
+    aliases: [apache/flume]
+    archive: https://archive.apache.org/dist/flume/
+    release_pattern: '(?:release-|rel/|apache-flume-)?(?P<version>\d+\.\d+\.\d+)(?:-bin|-src)?'
+    status: Dormant since October 2024; repository reports significant rework. Activity does not establish support status.
+    status_url: https://github.com/apache/logging-flume#project-status
+    jira: https://issues.apache.org/jira/browse/FLUME
+mail:
+  list: dev
+  domain: logging.apache.org
+  archive: https://lists.apache.org/list.html?dev@logging.apache.org
+inactive:
+  - {name: Chainsaw, url: 'https://github.com/apache/logging-chainsaw', status: Inactive}
+  - {name: Log4j 1, url: 'https://logging.apache.org/log4j/1.x/', status: End of life since August 2015}
+  - {name: Log4j Audit, url: 'https://github.com/apache/logging-log4j-audit', status: Inactive}
+  - {name: Log4j Extras, url: 'https://logging.apache.org/log4j/extras/', status: Inactive}
+  - {name: Log4j Scala, url: 'https://logging.apache.org/log4j/scala/', status: Retired on 19 January 2026}
+  - {name: Log4php, url: 'https://github.com/apache/logging-log4php', status: Inactive}
