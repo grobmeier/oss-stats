@@ -171,10 +171,17 @@ function start(report) {
     const root = $("dashboard");
     root.replaceChildren();
     const selected = scope + ($("module").value ? "/" + $("module").value : "");
+    const repositoryMetric = (name) =>
+      /^(?:new_)?(?:issue|discussion)|^(?:stable_releases|release_age_days)$/.test(
+        name,
+      );
     const grouping = $("group").value;
     const filtered = report.metrics.filter(
       (r) =>
-        r.scope === selected &&
+        (r.scope === selected ||
+          ($("module").value &&
+            r.scope === scope &&
+            repositoryMetric(r.metric))) &&
         r.grouping === grouping &&
         (grouping === "partial month" ||
           (r.start.slice(0, 7) >= $("from").value &&
@@ -320,6 +327,18 @@ function start(report) {
     for (const [title, ids] of groups) {
       const s = section(title),
         cards = node("div", undefined, "cards");
+      if (
+        $("module").value &&
+        ["Issues", "Discussions", "Releases"].includes(title)
+      ) {
+        s.append(
+          node(
+            "p",
+            "Repository scope. The module filter applies to commits and pull requests.",
+            "scope-note",
+          ),
+        );
+      }
       for (const id of ids) {
         const row = find(id);
         if (!row) continue;
@@ -466,7 +485,7 @@ function start(report) {
       s.append(
         node(
           "p",
-          "Current snapshot only, up to 50 items. This list is separate from historical cohorts.",
+          "Current repository snapshot only, up to 50 items. This list is separate from historical cohorts.",
           "scope-note",
         ),
         sort,
