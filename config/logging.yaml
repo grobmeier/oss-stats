@@ -11,6 +11,7 @@ projects:
   - id: log4j
     name: Log4j
     repo: apache/logging-log4j2
+    release_majors: [2, 3]
     archive: https://archive.apache.org/dist/logging/log4j/
     release_pattern: '(?:apache-log4j-|rel/|log4j-)?(?P<version>\d+\.\d+\.\d+)'
     jira: https://issues.apache.org/jira/browse/LOG4J2

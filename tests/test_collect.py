@@ -49,6 +49,12 @@ def test_archive_rules_recognise_each_project():
         assert list(versions) == ["2.3.4"]
 
 
+def test_inactive_log4j1_releases_do_not_enter_the_active_project():
+    project = load()["projects"][0]
+    versions = archive_versions('<a href="1.2.17/">old</a><a href="2.25.3/">current</a>', project)
+    assert list(versions) == ["2.25.3"]
+
+
 def test_bots_and_stable_ids():
     assert actor({"id": 12, "node_id": "U_12", "login": "person"}, load()) == "github:U_12"
     assert actor({"id": 12, "login": "renovate[bot]"}, load()) is None

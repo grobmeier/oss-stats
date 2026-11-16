@@ -218,7 +218,7 @@ def git_records(project, config, cache, start):
     branches = list(dict.fromkeys([branch] + project.get("branches", [])))
     records = {}
     for branch in branches:
-        subprocess.run(["git", "--git-dir", str(destination), "fetch", "--quiet", "origin", f"+refs/heads/{branch}:refs/heads/{branch}", "--tags"],
+        subprocess.run(["git", "--git-dir", str(destination), "fetch", "--quiet", "https://github.com/" + project["repo"] + ".git", f"+refs/heads/{branch}:refs/heads/{branch}", "--tags"],
                        check=True, capture_output=True, timeout=600)
         output = subprocess.run(["git", "--git-dir", str(destination), "log", branch, "--no-merges", "--no-renames", "--use-mailmap",
                                  "--format=COMMIT %H%x09%aE%x09%aI", "--name-only"],
@@ -281,7 +281,10 @@ def archive_versions(text, project):
         name = html.unescape(href).rstrip("/")
         match = pattern.fullmatch(name)
         if match:
-            found[match["version"].replace("_", ".")] = urljoin(project["archive"], href)
+            version = match["version"].replace("_", ".")
+            if project.get("release_majors") and int(version.split(".")[0]) not in project["release_majors"]:
+                continue
+            found[version] = urljoin(project["archive"], href)
     return found
 
 
@@ -312,6 +315,8 @@ def release_records(api, project):
         match = re.fullmatch(project["release_pattern"], tag["name"])
         if match:
             version = match["version"].replace("_", ".")
+            if project.get("release_majors") and int(version.split(".")[0]) not in project["release_majors"]:
+                continue
             if version not in known:
                 rows.append({"id": version, "version": version, "line": version.split(".")[0] + ".x", "at": None,
                              "date_kind": "tag only, official distribution unverified", "verified": False,
