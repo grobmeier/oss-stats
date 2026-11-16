@@ -41,6 +41,13 @@ def test_self_and_bot_comments_are_not_responses():
     assert result["issue_unanswered"]["value"] == 1
 
 
+def test_automated_submissions_count_as_work_without_inflating_people():
+    result = calculate({"issues": [item(actor=None)]}, START, END)
+    assert result["issues_opened"]["value"] == 1
+    assert result["issue_backlog"]["value"] == 1
+    assert result["issue_participants"]["value"] == 0
+
+
 def test_answer_removal_only_changes_observed_future():
     row = item(history="observed", observations=[{"at": "2026-01-10T00:00:00Z", "state": "open", "answerable": True, "answer_id": "answer"},
                                                 {"at": "2026-02-10T00:00:00Z", "state": "open", "answerable": True, "answer_id": None}])

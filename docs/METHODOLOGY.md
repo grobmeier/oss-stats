@@ -18,6 +18,10 @@ Participation uses Git author identities, stable GitHub account IDs, and
 normalised mail sender identities. These channels remain separate. Explicit
 identity aliases and Git mailmap information can join known aliases. Display
 names do not establish identity. Bot accounts are excluded from human metrics.
+Unmatched aliases can count one person more than once.
+Work-item counts include automated submissions. Responses must come from a
+human. Automated submissions therefore contribute workload without inflating
+human participation counts.
 
 First observed GitHub or mail participation does not establish first-ever
 participation. Git newcomer figures use full history of the selected branches.

@@ -152,8 +152,9 @@ def calculate(records, start, end, floor=5, stale=28):
     add("reviewer_concentration", sum((v / len(reviews)) ** 2 for v in shares.values()) if reviews else 0, len(shares), "concentration")
     for kind, prefix in (("pulls", "pr"), ("issues", "issue"), ("discussions", "discussion")):
         rows = records.get(kind, [])
-        human = [r for r in rows if r.get("actor")]
-        cohort = [r for r in human if in_period(readiness(r) if kind == "pulls" else r["created_at"], start, end)]
+        # Workload includes automated submissions. Identity counts exclude
+        # bots, while eligible responses must still come from a human.
+        cohort = [r for r in rows if in_period(readiness(r) if kind == "pulls" else r["created_at"], start, end)]
         plural = {"pulls": "prs", "issues": "issues", "discussions": "discussions"}[kind]
         add(plural + "_opened", len(cohort))
         if kind != "pulls":
