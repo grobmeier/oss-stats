@@ -267,7 +267,7 @@ def build_report(store, config, at):
         pid = project["id"]
         records = {kind: store.get(f"{pid}:{kind}") for kind in all_records}
         for kind, rows in records.items():
-            all_records[kind].extend(dict(r, id=f"{pid}:{r['id']}") for r in rows)
+            all_records[kind].extend(dict(r, id=f"{pid}:{r['id']}" if kind in ("commits", "releases") else r["id"]) for r in rows)
         selections.append((pid, records))
         for module in project.get("modules", {}):
             subset = {kind: [r for r in records[kind] if module in r.get("modules", [])] for kind in ("commits", "pulls")}
@@ -285,6 +285,10 @@ def build_report(store, config, at):
                                     "age_days": int(days_between(row["created_at"], at)),
                                     "updated_at": row["updated_at"], "reason": "Awaiting another human's review" if kind == "pulls" else "No other human response"})
         report["waiting"][pid] = sorted(waiting, key=lambda r: -r["age_days"])[:50]
+    for kind in ("pulls", "issues", "discussions"):
+        # A transferred GitHub item retains its global node ID. Until the next
+        # full reconciliation, an older source snapshot can still contain it.
+        all_records[kind] = list({r["id"]: r for r in sorted(all_records[kind], key=lambda r: r.get("updated_at", ""))}.values())
     selections.append(("logging", all_records))
     selections.append(("shared-list", {"mail": store.get("logging:mail")}))
     for scope, records in selections:
@@ -292,6 +296,8 @@ def build_report(store, config, at):
             values = calculate(records, start, end, config["sample_floor"], config["stale_days"])
             for name, result in values.items():
                 kind = channel(name)
+                if scope == "logging" and kind == "releases":
+                    continue
                 if scope == "shared-list" and kind != "mail" or scope != "shared-list" and kind == "mail":
                     continue
                 if "/" in scope and kind not in ("commits", "pulls"):

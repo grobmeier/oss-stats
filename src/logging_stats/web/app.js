@@ -201,7 +201,14 @@ function start(report) {
       const s = section("Across the projects");
       s.append(
         table(
-          ["Project", "Commit authors", "Open PRs", "Open issues", "Coverage"],
+          [
+            "Project",
+            "Commit authors",
+            "Open PRs",
+            "Open issues",
+            "Latest release evidence",
+            "Coverage",
+          ],
           report.projects.map((p) => {
             const rows = report.metrics.filter(
               (r) =>
@@ -211,11 +218,30 @@ function start(report) {
             name.append(link(p.name, "./" + p.id + ".html"));
             if (p.status)
               name.append(node("small", " · Dormant / under rework"));
+            const latestRelease = [...(report.releases[p.id] || [])]
+              .filter((r) => r.verified)
+              .sort((a, b) =>
+                b.version.localeCompare(a.version, undefined, {
+                  numeric: true,
+                }),
+              )[0];
+            const releaseCell = latestRelease ? node("span") : "Unavailable";
+            if (latestRelease)
+              releaseCell.append(
+                link(latestRelease.version, latestRelease.url),
+                node(
+                  "small",
+                  latestRelease.at
+                    ? " · " + latestRelease.at.slice(0, 10)
+                    : " · Date unavailable",
+                ),
+              );
             return [
               name,
               value(find("commit_authors", rows)),
               value(find("pr_backlog", rows)),
               value(find("issue_backlog", rows)),
+              releaseCell,
               Object.entries(report.sources)
                 .filter(([key]) => key.startsWith(p.id + ":"))
                 .map(([, v]) => v.status)
@@ -223,7 +249,7 @@ function start(report) {
                 .join(", "),
             ];
           }),
-          "Project headcounts overlap. The overview uses distinct identities within each channel.",
+          "Project headcounts overlap. Release evidence uses the latest collected snapshot, independently of the selected activity period.",
         ),
       );
       root.append(s);

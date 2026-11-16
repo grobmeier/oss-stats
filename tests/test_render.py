@@ -66,3 +66,16 @@ def test_quarterly_report_recomputes_observations_instead_of_monthly_medians(tmp
     report = build_report(store, config, "2026-04-05T00:00:00Z")
     row = next(r for r in report["metrics"] if r["scope"] == "log4j" and r["metric"] == "issue_reply_hours" and r["grouping"] == "quarterly")
     assert row["value"] == 100
+
+
+def test_transferred_items_count_once_and_release_metrics_stay_per_project(tmp_path):
+    store = Store(tmp_path)
+    for pid in ("log4j", "kotlin"):
+        store.save(pid+":issues", [{"id": "same-global-node", "created_at": "2026-10-01T00:00:00Z", "state": "closed",
+                   "closed_at": "2026-10-02T00:00:00Z", "actor": "U1", "events": [], "comments": []}], {"status": "complete"})
+    config = load()
+    config["history_months"] = 1
+    report = build_report(store, config, "2026-11-16T00:00:00Z")
+    row = next(r for r in report["metrics"] if r["scope"] == "logging" and r["metric"] == "issues_opened" and r["grouping"] == "monthly")
+    assert row["value"] == 1
+    assert not any(r["scope"] == "logging" and r["metric"] == "stable_releases" for r in report["metrics"])
