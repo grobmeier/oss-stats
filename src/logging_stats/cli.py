@@ -15,7 +15,7 @@ from .timeutil import completed_month, month_ends, norm_ts
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="Independent community activity reports")
+    parser = argparse.ArgumentParser(prog="oss-stats", description="Independent community activity reports")
     parser.add_argument("--config", type=Path, default=Path("config/logging.yaml"))
     parser.add_argument("--data", type=Path, default=None)
     sub = parser.add_subparsers(dest="command", required=True)

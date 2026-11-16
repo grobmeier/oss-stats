@@ -3,8 +3,8 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "logging-stats"
-version = "0.2.0"
+name = "oss-stats"
+version = "0.3.0"
 description = "Configurable community activity dashboards from public sources"
 requires-python = ">=3.11"
 license = "Apache-2.0"
@@ -15,6 +15,7 @@ dev = ["pytest>=8"]
 packaging = ["build>=1.2,<2", "pyinstaller==6.22.3"]
 
 [project.scripts]
+oss-stats = "logging_stats.cli:main"
 logging-stats = "logging_stats.cli:main"
 
 [tool.setuptools.packages.find]

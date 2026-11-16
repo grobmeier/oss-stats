@@ -44,19 +44,19 @@ def finish_manifest(destination, version, kind):
 def build(output, binary=False):
     if sys.platform not in ("darwin", "linux"):
         raise SystemExit("Distribution builds currently support macOS and Linux. Windows requires portable locking and publication first.")
-    version = importlib.metadata.version("logging-stats")
+    version = importlib.metadata.version("oss-stats")
     output = Path(output).resolve()
     output.mkdir(parents=True, exist_ok=True)
     archives = []
-    with tempfile.TemporaryDirectory(prefix="logging-stats-build-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="oss-stats-build-") as temporary:
         work = Path(temporary)
         wheel_dir = work / "wheels"
         subprocess.run([sys.executable, "-m", "build", "--wheel", "--outdir", str(wheel_dir)], cwd=ROOT, check=True)
-        package = work / f"logging-stats-{version}-python"
+        package = work / f"oss-stats-{version}-python"
         package.mkdir()
         common_files(package)
         wheel = next(wheel_dir.glob("*.whl"))
-        if not wheel.name.startswith("logging_stats-" + version + "-"):
+        if not wheel.name.startswith("oss_stats-" + version + "-"):
             raise SystemExit("Installed package version differs from the built wheel. Reinstall the packaging environment.")
         shutil.copy2(wheel, package / wheel.name)
         finish_manifest(package, version, "python-wheel")
@@ -69,17 +69,17 @@ def build(output, binary=False):
         if binary:
             executable_dir = work / "executable"
             subprocess.run([sys.executable, "-m", "PyInstaller", "--noconfirm", "--clean", "--onefile",
-                            "--name", "logging-stats", "--distpath", str(executable_dir), "--workpath", str(work / "objects"),
+                            "--name", "oss-stats", "--distpath", str(executable_dir), "--workpath", str(work / "objects"),
                             "--specpath", str(work), "--paths", str(ROOT / "src"),
                             "--collect-all", "duckdb", "--collect-all", "yaml",
                             "--add-data", str(ROOT / "src/logging_stats/web") + ":logging_stats/web",
                             str(ROOT / "scripts/binary_entry.py")], cwd=ROOT, check=True)
             system = "macos" if sys.platform == "darwin" else "linux"
             architecture = {"aarch64": "arm64", "AMD64": "x86_64"}.get(platform.machine(), platform.machine())
-            package = work / f"logging-stats-{version}-{system}-{architecture}"
+            package = work / f"oss-stats-{version}-{system}-{architecture}"
             package.mkdir()
             common_files(package)
-            shutil.copy2(executable_dir / "logging-stats", package / "logging-stats")
+            shutil.copy2(executable_dir / "oss-stats", package / "oss-stats")
             for dependency in ("duckdb", "pyyaml", "pyinstaller"):
                 distribution = importlib.metadata.distribution(dependency)
                 for filename in distribution.files or []:

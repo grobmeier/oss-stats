@@ -1,6 +1,6 @@
 # Provenance
 
-Logging Stats adapts the collection, historical reporting, Parquet storage,
+OSS Stats adapts the collection, historical reporting, Parquet storage,
 and static-site approach of **Russell Spitzer's Iceberg Community Health**:
 
 https://github.com/RussellSpitzer/iceberg-community-health

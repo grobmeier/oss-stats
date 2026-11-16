@@ -13,6 +13,7 @@ from email.utils import parseaddr, parsedate_to_datetime
 from pathlib import Path
 from urllib.parse import urljoin
 
+from . import __version__
 from .config import email_identity, identity, modules
 from .github import COMMENTS, DISCUSSIONS, REPLIES, item_query
 from .timeutil import norm_ts, parse_ts
@@ -241,7 +242,7 @@ def git_records(project, config, cache, start):
 
 
 def read_url(url):
-    request = urllib.request.Request(url, headers={"User-Agent": "logging-stats/0.1 (+https://github.com/grobmeier/logging-stats)"})
+    request = urllib.request.Request(url, headers={"User-Agent": f"oss-stats/{__version__} (+https://github.com/grobmeier/logging-stats)"})
     with urllib.request.urlopen(request, timeout=60) as response:
         return response.read()
 

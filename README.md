@@ -1,6 +1,7 @@
-# Logging Stats
+# OSS Stats
 
-An independent community activity dashboard for Apache Logging. It covers
+A configurable community activity dashboard for open-source projects.
+The Apache Logging configuration covers
 Log4j, Log4j Kotlin, Log4cxx, Log4net, Flume, and the shared Logging development
 list. It includes pull requests, GitHub Issues, Discussions, Git history, and
 official release evidence. It does not calculate sentiment or a health score.
@@ -32,8 +33,8 @@ GitHub item counts are bounded per channel. Mail uses the latest completed
 month and the current month. The report labels sampled channels as partial.
 
 ```sh
-.venv/bin/logging-stats --data data/local collect --sample 2
-.venv/bin/logging-stats --data data/local render --allow-partial
+.venv/bin/oss-stats --data data/local collect --sample 2
+.venv/bin/oss-stats --data data/local render --allow-partial
 .venv/bin/python -m http.server 8129 --bind 127.0.0.1 --directory site
 ```
 
@@ -43,14 +44,14 @@ The first Git collection can take several minutes.
 Collect the full configured history, then render a complete report:
 
 ```sh
-.venv/bin/logging-stats --data data/local collect --full
-.venv/bin/logging-stats --data data/local render
+.venv/bin/oss-stats --data data/local collect --full
+.venv/bin/oss-stats --data data/local render
 ```
 
 Use the same data directory to resume interrupted collection:
 
 ```sh
-.venv/bin/logging-stats --data data/local collect
+.venv/bin/oss-stats --data data/local collect
 ```
 
 Source checkpoints preserve completed nested reads. A later ordinary collection
@@ -92,10 +93,10 @@ for Maven Core and Resolver, and Commons Lang and IO. These are initial
 catalogues, not complete inventories of Maven or Commons repositories.
 
 ```sh
-.venv/bin/logging-stats --config config/maven.yaml collect
-.venv/bin/logging-stats --config config/maven.yaml render
-.venv/bin/logging-stats --config config/commons.yaml collect
-.venv/bin/logging-stats --config config/commons.yaml render
+.venv/bin/oss-stats --config config/maven.yaml collect
+.venv/bin/oss-stats --config config/maven.yaml render
+.venv/bin/oss-stats --config config/commons.yaml collect
+.venv/bin/oss-stats --config config/commons.yaml render
 ```
 
 Each configuration selects its own data directory, output directory, page
@@ -121,3 +122,8 @@ this repository. See [distribution instructions](docs/DISTRIBUTION.md).
 Native packages include Python and its libraries. Collection still needs Git
 and authenticated GitHub CLI. The manual distribution workflow builds and tests
 platform-specific archives without publishing a release or deploying a website.
+
+The installable package, command, and native executable are named `oss-stats`.
+The installed Python package also provides `logging-stats` as a compatibility
+alias for existing operator scripts. The source module remains `logging_stats`.
+The GitHub repository currently retains its original `logging-stats` name.

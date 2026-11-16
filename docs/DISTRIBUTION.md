@@ -1,4 +1,4 @@
-# Run your own community dashboard
+# OSS Stats: run your own community dashboard
 
 The same application runs Logging, Maven, Commons, or your own repository catalogue.
 Each archive includes configuration examples, licence, attribution, and a build manifest.
@@ -16,9 +16,9 @@ The application reads public repositories and the configured public Apache maili
 Run these commands from the extracted directory:
 
 ```sh
-./logging-stats --help
-./logging-stats --config config/maven.yaml collect
-./logging-stats --config config/maven.yaml render
+./oss-stats --help
+./oss-stats --config config/maven.yaml collect
+./oss-stats --config config/maven.yaml render
 ```
 
 The Maven example initially covers Maven Core and Resolver. The Commons example
@@ -49,9 +49,9 @@ From the extracted Python archive, install its wheel into an isolated environmen
 
 ```sh
 python3 -m venv .venv
-.venv/bin/pip install ./logging_stats-0.2.0-py3-none-any.whl
-.venv/bin/logging-stats --config config/maven.yaml collect
-.venv/bin/logging-stats --config config/maven.yaml render
+.venv/bin/pip install ./oss_stats-0.3.0-py3-none-any.whl
+.venv/bin/oss-stats --config config/maven.yaml collect
+.venv/bin/oss-stats --config config/maven.yaml render
 python3 -m http.server 8129 --bind 127.0.0.1 --directory site
 ```
 
@@ -90,3 +90,12 @@ It does not copy the source checkout, environment, caches, or private datasets.
 
 Adapted from Russell Spitzer's Iceberg Community Health under Apache-2.0.
 The exact upstream revision and additional credits are in `PROVENANCE.md` and `NOTICE`.
+
+## Upgrade from the original package name
+
+The distribution name changed from `logging-stats` to `oss-stats` in version 0.3.0.
+When upgrading a Python environment, uninstall the old `logging-stats` package
+before installing the new wheel. The new wheel provides both the `oss-stats`
+command and a `logging-stats` compatibility alias. The native executable is
+named `oss-stats`. Existing YAML files, datasets, and report paths still work.
+The source repository and Python import namespace retain their original names.

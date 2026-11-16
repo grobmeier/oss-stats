@@ -1,2 +1,2 @@
-"""Independent Apache Logging activity reports."""
-__version__ = "0.2.0"
+"""Configurable community activity reports from public sources."""
+__version__ = "0.3.0"

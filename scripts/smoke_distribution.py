@@ -17,7 +17,7 @@ from logging_stats.store import Store
 
 
 def smoke(archive):
-    with tempfile.TemporaryDirectory(prefix="logging-stats-smoke-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="oss-stats-smoke-") as temporary:
         work = Path(temporary)
         with tarfile.open(archive) as stream:
             stream.extractall(work, filter="data")
@@ -25,13 +25,14 @@ def smoke(archive):
         manifest = json.loads((package / "BUILD.json").read_text())
         for relative, digest in manifest["files"].items():
             assert hashlib.sha256((package / relative).read_bytes()).hexdigest() == digest, relative
-        executable = package / "logging-stats"
+        executable = package / "oss-stats"
         outside = work / "outside-checkout"
         outside.mkdir()
         # Render must not depend on Git, gh, Python executables, or the source checkout.
         environment = dict(os.environ, PATH="/nonexistent")
         environment.pop("PYTHONPATH", None)
-        subprocess.run([str(executable), "--help"], cwd=outside, env=environment, check=True, capture_output=True)
+        help_result = subprocess.run([str(executable), "--help"], cwd=outside, env=environment, check=True, capture_output=True, text=True)
+        assert "usage: oss-stats" in help_result.stdout
         for name in ("logging", "maven", "commons"):
             config = yaml.safe_load((package / "config" / (name + ".yaml")).read_text())
             config["history_months"] = 2
