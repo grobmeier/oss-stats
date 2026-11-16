@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 import uuid
+from datetime import UTC, datetime
 from pathlib import Path
 
 import duckdb
@@ -58,3 +59,15 @@ class Store:
         previous = self.state.get(source, {})
         self.state[source] = dict(previous, status=status, reason=reason, attempted_at=attempted_at)
         atomic_json(self.state_path, self.state)
+
+    def manifest(self, config, report_as_of, phase="finished"):
+        path = self.root / "manifests" / (uuid.uuid4().hex + ".json")
+        atomic_json(path, {
+            "schema_version": 1, "definition_version": config["definition_version"],
+            "recorded_at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "report_as_of": report_as_of, "phase": phase,
+            "history_months": config["history_months"],
+            "projects": [{"id": p["id"], "repo": p["repo"]} for p in config["projects"]],
+            "sources": self.state,
+        })
+        return path

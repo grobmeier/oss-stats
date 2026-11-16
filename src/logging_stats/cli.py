@@ -51,8 +51,10 @@ def main(argv=None):
         if args.months:
             config["history_months"] = args.months
         start = completed_month(month_ends(at, config["history_months"])[0])[0]
+        store.manifest(config, at, "started")
         run(GitHub(args.request_budget), store, config, at, start, args.sample, args.full,
             not args.no_git, not args.no_mail, args.projects)
+        store.manifest(config, at)
         failed = [source for source, info in store.state.items() if info["status"] in ("failed", "unavailable")]
         print(f"Checkpointed {len(store.state)} sources. {len(failed)} failed or unavailable.")
         return 1 if failed else 0
