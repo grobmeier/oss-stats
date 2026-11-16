@@ -332,6 +332,11 @@ def run(api, store, config, at, start, limit=None, full=False, git=True, mail=Tr
             info = dict(extra, status="partial" if limit and sampled else "complete", last_success=at,
                         attempted_at=at, coverage_start=start, reason="Bounded live sample" if limit and sampled else "",
                         first_observed=old.get("first_observed", at))
+            info["excluded_actor_events"] = sum("actor" in row and not row["actor"] for row in rows)
+            info["excluded_actor_events"] += sum(not event.get("actor") for row in rows for key in ("comments", "reviews") for event in row.get(key, []))
+            info["scope_history"] = old.get("scope_history", [])
+            if extra.get("branches") and old.get("branches") and old["branches"] != extra["branches"]:
+                info["scope_history"] = info["scope_history"] + [{"at": at, "previous": old["branches"], "current": extra["branches"]}]
             store.save(source, rows, info)
         except Exception as error:
             # Provider errors are bounded and do not print raw data.

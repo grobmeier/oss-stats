@@ -38,3 +38,31 @@ def test_ecosystem_deduplicates_participants(tmp_path):
     report = build_report(store, config, "2026-11-16T00:00:00Z")
     row = next(r for r in report["metrics"] if r["scope"] == "logging" and r["metric"] == "commit_authors" and r["grouping"] == "monthly")
     assert row["value"] == 1
+
+
+def test_interrupted_discussion_collection_can_render_without_observations(tmp_path):
+    store = Store(tmp_path)
+    store.save("log4j:discussions", [{"id": "d1", "title": "Question", "url": "https://github.com/a/b/discussions/1", "created_at": "2026-11-01T00:00:00Z",
+               "updated_at": "2026-11-02T00:00:00Z", "actor": "U1", "state": "open", "history": "observed", "observations": [], "comments": []}], {"status": "partial"})
+    config = load()
+    config["history_months"] = 1
+    report = build_report(store, config, "2026-11-16T00:00:00Z")
+    assert report["waiting"]["log4j"] == []
+
+
+def test_quarterly_report_recomputes_observations_instead_of_monthly_medians(tmp_path):
+    from datetime import timedelta
+    from logging_stats.timeutil import norm_ts, parse_ts
+    store = Store(tmp_path)
+    rows = []
+    for n in range(11):
+        created = "2026-01-01T00:00:00Z" if n == 0 else "2026-02-01T00:00:00Z"
+        reply = norm_ts((parse_ts(created) + timedelta(hours=1 if n == 0 else 100)).isoformat())
+        rows.append({"id": str(n), "created_at": created, "actor": "author", "history": "events", "events": [],
+                     "comments": [{"actor": "other", "at": reply}], "state": "closed", "closed_at": reply})
+    store.save("log4j:issues", rows, {"status": "complete"})
+    config = load()
+    config.update(history_months=3, sample_floor=1)
+    report = build_report(store, config, "2026-04-05T00:00:00Z")
+    row = next(r for r in report["metrics"] if r["scope"] == "log4j" and r["metric"] == "issue_reply_hours" and r["grouping"] == "quarterly")
+    assert row["value"] == 100

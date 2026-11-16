@@ -15,8 +15,8 @@ const link = (title, url) => {
 const label = (name) =>
   name
     .replaceAll("_", " ")
-    .replace(/^pr /, "PR ")
-    .replace(/^prs /, "PRs ")
+    .replace(/\bpr\b/g, "PR")
+    .replace(/\bprs\b/g, "PRs")
     .replace(/^./, (c) => c.toUpperCase());
 function value(row) {
   if (!row || row.value === null) return "—";
@@ -123,6 +123,15 @@ function start(report) {
       key.startsWith(scope + ":") ||
       key === "logging:mail",
   );
+  if (sources.some(([, s]) => s.scope_history?.length)) {
+    $("warning").append(
+      node(
+        "p",
+        "Selected branch scope changed. Comparisons use the current branch scope. Inspect Coverage before comparing older reports.",
+        "notice",
+      ),
+    );
+  }
   $("sources").append(
     table(
       ["Source", "State", "Records", "Last success / UTC", "Coverage / notes"],
@@ -131,7 +140,7 @@ function start(report) {
         s.status,
         s.records ?? "—",
         s.last_success ?? "Never",
-        `${s.coverage_start || "Observed only"} ${s.reason || ""} ${s.branches ? "Branches: " + s.branches.join(", ") : ""}`,
+        `${s.coverage_start || "Observed only"} ${s.reason || ""} ${s.branches ? "Branches: " + s.branches.join(", ") : ""} ${s.excluded_actor_events ? "Excluded bot or unavailable actor events: " + s.excluded_actor_events : ""}`,
       ]),
     ),
   );
@@ -324,22 +333,25 @@ function start(report) {
         "aria-label",
         "Commit counts by period. Exact values follow in the table.",
       );
-      const line = document.createElementNS(svg.namespaceURI, "polyline");
-      line.setAttribute(
-        "points",
-        points
-          .map((r, i) =>
-            r.value === null
-              ? ""
-              : `${20 + (i * 960) / Math.max(1, points.length - 1)},${115 - (r.value / max) * 100}`,
-          )
-          .filter(Boolean)
-          .join(" "),
-      );
-      line.setAttribute("fill", "none");
-      line.setAttribute("stroke", "#176653");
-      line.setAttribute("stroke-width", "3");
-      svg.append(line);
+      let segment = [];
+      function drawSegment() {
+        if (!segment.length) return;
+        const line = document.createElementNS(svg.namespaceURI, "polyline");
+        line.setAttribute("points", segment.join(" "));
+        line.setAttribute("fill", "none");
+        line.setAttribute("stroke", "#176653");
+        line.setAttribute("stroke-width", "3");
+        svg.append(line);
+        segment = [];
+      }
+      points.forEach((r, i) => {
+        if (r.value === null) drawSegment();
+        else
+          segment.push(
+            `${20 + (i * 960) / Math.max(1, points.length - 1)},${115 - (r.value / max) * 100}`,
+          );
+      });
+      drawSegment();
       chart.append(svg);
     } else
       chart.append(node("p", "No covered commit observations in this range."));
@@ -376,6 +388,14 @@ function start(report) {
     if (project) {
       const s = section("Work awaiting a response"),
         sort = node("select");
+      const staleDays = report.stale_days || 28;
+      const ageLabel = node(
+        "label",
+        `Only items aged ${staleDays} days or more`,
+      );
+      const ageFilter = node("input");
+      ageFilter.type = "checkbox";
+      ageLabel.append(ageFilter);
       sort.setAttribute("aria-label", "Sort waiting work");
       [
         ["age", "Oldest first"],
@@ -388,18 +408,20 @@ function start(report) {
       const list = node("ul", undefined, "waiting");
       function waiting() {
         list.replaceChildren();
-        const rows = [...(report.waiting[scope] || [])].sort((a, b) =>
-          sort.value === "age"
-            ? b.age_days - a.age_days
-            : b.updated_at.localeCompare(a.updated_at),
-        );
+        const rows = [...(report.waiting[scope] || [])]
+          .filter((r) => !ageFilter.checked || r.age_days >= staleDays)
+          .sort((a, b) =>
+            sort.value === "age"
+              ? b.age_days - a.age_days
+              : b.updated_at.localeCompare(a.updated_at),
+          );
         for (const row of rows) {
           const li = node("li");
           li.append(
             link(row.title, row.url),
             node(
               "small",
-              `${row.kind} · ${row.age_days} days · ${row.reason}${row.age_days >= 28 ? " · 28-day filter match" : ""}`,
+              `${row.kind} · ${row.age_days} days · ${row.reason}${row.age_days >= staleDays ? ` · ${staleDays}-day filter match` : ""}`,
             ),
           );
           list.append(li);
@@ -413,6 +435,7 @@ function start(report) {
           );
       }
       sort.addEventListener("change", waiting);
+      ageFilter.addEventListener("change", waiting);
       waiting();
       s.append(
         node(
@@ -421,10 +444,11 @@ function start(report) {
           "scope-note",
         ),
         sort,
+        ageLabel,
         list,
       );
       root.append(s);
-      const releases = section("Verified release records");
+      const releases = section("Release evidence");
       releases.append(
         table(
           ["Version / line", "Date evidence", "Archive"],
@@ -459,6 +483,7 @@ function start(report) {
           r.scope === "shared-list" && r.end === end && r.grouping === grouping,
       );
       s.append(
+        link("Public dev-list archive", report.mail_archive),
         node(
           "p",
           "Public dev list only. Shared counts appear once and are not included in project totals.",

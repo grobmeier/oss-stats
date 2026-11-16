@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Manual collection and static report commands."""
 import argparse
+import fcntl
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -36,6 +37,11 @@ def main(argv=None):
     store = Store(args.data)
     at = norm_ts(args.as_of or datetime.now(UTC).isoformat())
     if args.command == "collect":
+        lock = (store.root / "collect.lock").open("w")
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            parser.error("A collector already owns this data directory. Wait for it to finish.")
         if args.sample is not None and args.sample < 1:
             parser.error("--sample must be positive")
         if args.months is not None and not 1 <= args.months <= config["history_months"]:

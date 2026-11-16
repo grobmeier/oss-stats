@@ -251,8 +251,8 @@ def windows(at, count):
 
 def build_report(store, config, at):
     report = {"schema_version": 1, "definition_version": config["definition_version"], "as_of": at,
-              "title": config["title"], "target_url": config["target_url"], "projects": config["projects"],
-              "inactive": config["inactive"], "metrics": [], "waiting": {}, "sources": {}, "releases": {},
+              "title": config["title"], "target_url": config["target_url"], "projects": config["projects"], "stale_days": config["stale_days"],
+              "inactive": config["inactive"], "mail_archive": config["mail"]["archive"], "metrics": [], "waiting": {}, "sources": {}, "releases": {},
               "definitions": DEFINITIONS, "provenance": {"author": "Russell Spitzer", "url": "https://github.com/RussellSpitzer/iceberg-community-health",
               "revision": "5e26873783da1849343a7c3dd0403f9ef56240d4"}}
     for source, info in store.state.items():
@@ -278,10 +278,10 @@ def build_report(store, config, at):
                 state = state_at(row, at)
                 # Include observations taken at this run's exact timestamp.
                 if row.get("history") == "observed":
-                    state = row.get("observations", [{}])[-1]
+                    state = (row.get("observations") or [{}])[-1]
                 if state and state.get("state") == "open" and not state.get("draft") and not response(row, at, kind == "pulls"):
                     waiting.append({"title": row["title"], "url": row["url"], "kind": kind,
-                                    "age_days": round(days_between(row["created_at"], at)),
+                                    "age_days": int(days_between(row["created_at"], at)),
                                     "updated_at": row["updated_at"], "reason": "Awaiting another human's review" if kind == "pulls" else "No other human response"})
         report["waiting"][pid] = sorted(waiting, key=lambda r: -r["age_days"])[:50]
     selections.append(("logging", all_records))
