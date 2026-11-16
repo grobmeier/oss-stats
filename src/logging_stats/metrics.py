@@ -8,7 +8,7 @@ from .timeutil import completed_month, days_between, hours_between, month_ends, 
 
 DEFINITIONS = {
     "commit_authors": "Distinct human commit authors during the period. Git author identities are separate from GitHub accounts.",
-    "commits": "Non-merge commits authored during the period. Commits on selected branches count once per repository and SHA.",
+    "commits": "Human-authored non-merge commits during the period. Commits on selected branches count once per repository and SHA.",
     "new_commit_authors": "Authors whose first in-scope commit falls in this period. Requires full selected-branch history.",
     "retention": "Share of eligible new commit authors with a second commit within 180 days. Cohorts require 180 days of observation.",
     "pr_authors": "Distinct human authors of pull requests created in this period, including drafts.",

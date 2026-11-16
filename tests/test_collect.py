@@ -3,7 +3,7 @@ import json
 import pytest
 
 from logging_stats.collect import actor, archive_versions, collect_discussions, collect_items, normal_event, parse_mbox
-from logging_stats.config import load, modules
+from logging_stats.config import email_identity, load, modules
 from logging_stats.github import GitHub
 
 
@@ -58,6 +58,13 @@ def test_inactive_log4j1_releases_do_not_enter_the_active_project():
 def test_bots_and_stable_ids():
     assert actor({"id": 12, "node_id": "U_12", "login": "person"}, load()) == "github:U_12"
     assert actor({"id": 12, "login": "renovate[bot]"}, load()) is None
+
+
+def test_reviewed_email_aliases_join_without_using_display_names():
+    config = load()
+    config["identity_aliases"] = {"old@example.com": "canonical@example.com"}
+    assert email_identity("OLD@example.com", config) == email_identity("canonical@example.com", config)
+    assert email_identity("different@example.com", config) != email_identity("canonical@example.com", config)
 
 
 def test_modules_overlap_without_duplicate_labels():
