@@ -112,3 +112,12 @@ Backlog age charts partition open PRs and issues into four disjoint age buckets.
 The newcomer journey shows first-observed PR cohorts, human responses within
 30 days, and merges and return PRs within 90 days. Rates use only fully observed
 windows and retain sample-size limits. See [methodology](docs/METHODOLOGY.md).
+
+## Shareable distributions
+
+Build a native macOS or Linux executable and a Python-wheel archive with example
+configurations. Recipients can run Maven or another catalogue without cloning
+this repository. See [distribution instructions](docs/DISTRIBUTION.md).
+Native packages include Python and its libraries. Collection still needs Git
+and authenticated GitHub CLI. The manual distribution workflow builds and tests
+platform-specific archives without publishing a release or deploying a website.

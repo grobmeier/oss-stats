@@ -1,0 +1,32 @@
+name: Build downloadable distributions
+on: workflow_dispatch
+permissions:
+  contents: read
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, macos-15]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -e '.[dev,packaging]'
+      - run: python -m pytest
+      - run: python scripts/build_distribution.py --binary
+      - name: Test the extracted native executable
+        shell: bash
+        run: |
+          for archive in dist/distribution/*.tar.gz; do
+            python scripts/smoke_distribution.py "$archive"
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: logging-stats-${{ runner.os }}-${{ runner.arch }}
+          path: dist/distribution/
+          if-no-files-found: error
+          retention-days: 30

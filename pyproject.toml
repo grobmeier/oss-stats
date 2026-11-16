@@ -4,14 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "logging-stats"
-version = "0.1.0"
-description = "Independent Apache Logging community activity dashboard"
+version = "0.2.0"
+description = "Configurable community activity dashboards from public sources"
 requires-python = ">=3.11"
 license = "Apache-2.0"
 dependencies = ["duckdb>=1.0", "pyyaml>=6"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]
+packaging = ["build>=1.2,<2", "pyinstaller==6.22.3"]
 
 [project.scripts]
 logging-stats = "logging_stats.cli:main"
