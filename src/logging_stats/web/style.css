@@ -309,3 +309,5 @@ section { scroll-margin-top: 20px; }
 .series-2 { color: #415bb0; }
 [aria-invalid="true"] { border-color: #a23521; }
 @media (max-width: 800px) { .trend-grid { grid-template-columns: 1fr; } }
+
+.age-chart svg { display: block; width: 100%; height: auto; margin: 12px 0; }

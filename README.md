@@ -107,3 +107,8 @@ Project links retain the selected months and grouping. Cards show the latest
 selected period. Sparklines and absolute changes compare periods within the
 selected interval. Counts of people and response medians are never summed.
 The reload button checks the latest published snapshot without starting collection.
+
+Backlog age charts partition open PRs and issues into four disjoint age buckets.
+The newcomer journey shows first-observed PR cohorts, human responses within
+30 days, and merges and return PRs within 90 days. Rates use only fully observed
+windows and retain sample-size limits. See [methodology](docs/METHODOLOGY.md).

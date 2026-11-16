@@ -83,3 +83,35 @@ contribute to current overview totals.
 Activity does not measure effort, quality, support promises, or security.
 Review shares do not establish individual productivity. There is no health
 score, individual ranking, or sentiment analysis.
+
+## Backlog age distribution
+
+Open PRs and issues enter one disjoint age bucket immediately before period end:
+under 7 days, 7 to under 30 days, 30 to under 90 days, or 90 days or more.
+Age starts at creation. Draft PRs and closed items are excluded. A reopened item
+retains its original creation age. Bucket counts sum to the matching backlog.
+PR buckets follow module filters. Issue buckets remain at repository scope.
+
+## Newcomer journey
+
+A cohort contains human authors whose first observed PR in the selected repository
+or community was created during that period. Drafts count. Bots do not count.
+The stored history does not establish first-ever participation. At community
+scope, the same account counts once across repositories. Another PR in any
+configured repository can count as a return. Module filters do not change cohorts.
+
+Unlike backlog snapshots, cohort outcomes use the report timestamp as their
+observation horizon. Historical cohorts can therefore gain outcomes in later
+reports. The response outcome requires another human account's comment or review
+on the first PR within 30 days of creation. Merge and return outcomes use 90 days.
+A return means another PR in the same scope, with no merge requirement.
+
+Each rate includes only authors whose full outcome window ends before the report
+timestamp. Outcomes on the deadline count. Events at the report timestamp do not.
+Counts describe those eligible authors, not incomplete windows. Each cohort shows
+its eligible denominators. Rates below the configured sample floor remain
+unavailable. Recent cohorts do not count as failures. Response, merge, and return
+are separate outcomes. They do not form sequential funnel stages.
+
+The same coverage rules apply to cohort and backlog metrics as to their PR or
+issue source. Exports contain only aggregate counts, rates, and coverage states.

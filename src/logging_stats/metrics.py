@@ -4,6 +4,7 @@ from collections import Counter
 from datetime import timedelta
 from statistics import median
 
+from .journey import calculate_journey
 from .timeutil import completed_month, days_between, hours_between, month_ends, parse_ts
 
 DEFINITIONS = {
@@ -56,6 +57,24 @@ for _name, _channel in (("new_pr_authors", "PR authors"), ("new_reviewers", "rev
                          ("new_issue_participants", "issue participants"), ("new_discussion_participants", "discussion participants"),
                          ("new_mail_participants", "mail senders")):
     DEFINITIONS[_name] = f"First observed {_channel} within stored coverage. This does not establish first-ever participation."
+
+
+AGE_BUCKETS = (("0_7", "under 7 days", 0, 7), ("7_30", "7 to under 30 days", 7, 30),
+               ("30_90", "30 to under 90 days", 30, 90), ("90_plus", "90 days or more", 90, float("inf")))
+for _prefix, _work in (("pr", "non-draft pull requests"), ("issue", "issues")):
+    for _key, _label, _low, _high in AGE_BUCKETS:
+        DEFINITIONS[f"{_prefix}_backlog_age_{_key}"] = f"Open {_work} aged {_label} since creation immediately before period end. Buckets do not overlap."
+DEFINITIONS.update({
+    "newcomer_pr_authors": "Human authors whose first observed PR in this repository or community was created in this cohort period. Includes drafts. Stored coverage does not establish first-ever participation.",
+    "newcomer_response_eligible": "Cohort authors with a full 30-day observation window before the report timestamp.",
+    "newcomer_followup_eligible": "Cohort authors with a full 90-day observation window before the report timestamp.",
+    "newcomer_responded": "Eligible authors whose first observed PR received another human account's comment or review within 30 days of creation.",
+    "newcomer_response_share": "Share of 30-day eligible cohort authors whose first observed PR received another human's comment or review within 30 days.",
+    "newcomer_merged": "Eligible authors whose first observed PR merged within 90 days of creation.",
+    "newcomer_merge_share": "Share of 90-day eligible cohort authors whose first observed PR merged within 90 days.",
+    "newcomer_returned": "Eligible authors who created another PR in the same repository or community within 90 days of their first observed PR.",
+    "newcomer_return_share": "Share of 90-day eligible cohort authors who created another PR in the same scope within 90 days. Return does not require a merge.",
+})
 
 
 def in_period(at, start, end):
@@ -116,7 +135,7 @@ def population(rows, start, end, comments=False, reviews=False):
     return people
 
 
-def calculate(records, start, end, floor=5, stale=28):
+def calculate(records, start, end, floor=5, stale=28, observed_until=None):
     values = {}
     def add(name, value, n=None, statistic=None, reason=None):
         n = n if n is not None else value
@@ -137,6 +156,7 @@ def calculate(records, start, end, floor=5, stale=28):
     retained = sum(len(dates) > 1 and days_between(dates[0], dates[1]) <= 180 for dates in eligible)
     add("retention", retained / len(eligible) if eligible else 0, len(eligible), "rate")
     pulls = records.get("pulls", [])
+    calculate_journey(pulls, start, end, observed_until or end, add)
     add("pr_authors", len(population(pulls, start, end)))
     def newcomers(name, observations):
         first = {}
@@ -174,6 +194,8 @@ def calculate(records, start, end, floor=5, stale=28):
             backlog = [r for r in rows if (s := state_at(r, end)) and s["state"] == "open" and not s.get("draft")]
             add(prefix + "_backlog", len(backlog))
             ages = [days_between(r["created_at"], end) for r in backlog]
+            for key, _, low, high in AGE_BUCKETS:
+                add(prefix + "_backlog_age_" + key, sum(low <= age < high for age in ages))
             add(prefix + "_age_days", median(ages) if ages else 0, len(ages), "median")
             if kind == "pulls":
                 add("pr_aged_28", sum(age >= stale for age in ages))
@@ -297,14 +319,14 @@ def build_report(store, config, at):
         selections.append(("shared-list", {"mail": store.get(mail_source)}))
     for scope, records in selections:
         for start, end, grouping in windows(at, config["history_months"]):
-            values = calculate(records, start, end, config["sample_floor"], config["stale_days"])
+            values = calculate(records, start, end, config["sample_floor"], config["stale_days"], observed_until=at)
             for name, result in values.items():
                 kind = channel(name)
                 if scope == overview and kind == "releases":
                     continue
                 if scope == "shared-list" and kind != "mail" or scope != "shared-list" and kind == "mail":
                     continue
-                if "/" in scope and kind not in ("commits", "pulls"):
+                if "/" in scope and (kind not in ("commits", "pulls") or name.startswith("newcomer_")):
                     continue
                 sources = [report["sources"].get(f"{p['id']}:{kind}", {}) for p in config["projects"]] if scope == overview else [report["sources"].get(mail_source if scope == "shared-list" else scope.split("/")[0] + ":" + kind, {})]
                 source_statuses = {s.get("status", "unavailable") for s in sources}

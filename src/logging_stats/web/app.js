@@ -213,7 +213,7 @@ function start(report) {
     root.replaceChildren();
     const selected = scope + ($("module").value ? "/" + $("module").value : "");
     const repositoryMetric = (name) =>
-      /^(?:new_)?(?:issue|discussion)|^(?:stable_releases|release_age_days)$/.test(
+      /^(?:new_)?(?:issue|discussion)|^newcomer_|^(?:stable_releases|release_age_days)$/.test(
         name,
       );
     const grouping = $("group").value;
@@ -411,6 +411,32 @@ function start(report) {
         root.append(s);
       }
     }
+    const backlog = section("Backlog age distribution");
+    backlog.append(node("p", `Open work immediately before ${end.slice(0, 10)}. Age starts at creation. Draft PRs are excluded.`, "scope-note"));
+    const buckets = [["0_7", "Under 7 days"], ["7_30", "7–<30 days"], ["30_90", "30–<90 days"], ["90_plus", "90 days or more"]];
+    const agePanels = node("div", undefined, "trend-grid");
+    for (const [prefix, title] of [["pr", "Pull requests"], ["issue", "Issues"]]) {
+      const panel = node("div", undefined, "trend-panel");
+      panel.append(node("h3", title + (prefix === "issue" && $("module").value ? " · repository scope" : "")));
+      const rows = buckets.map(([key, name]) => ({name, row: find(prefix + "_backlog_age_" + key)}));
+      panel.append(ageBars(rows, title));
+      panel.append(table(["Age", "Open items", "Coverage"], rows.map(({name, row}) => [name, value(row), row?.status || "Unavailable"])));
+      agePanels.append(panel);
+    }
+    backlog.append(agePanels); root.append(backlog);
+    const journey = section("Newcomer journey");
+    journey.append(node("p", `Cohorts group human authors by their first observed PR in this ${project ? "repository" : "community"}, including drafts. Outcomes use observations before ${report.as_of.replace("T", " ").replace("Z", " UTC")}. Stored coverage does not establish first-ever participation.`, "scope-note"));
+    if ($("module").value) journey.append(node("p", "Repository scope. Module filters do not change newcomer cohorts.", "scope-note"));
+    journey.append(node("p", "Response means another human account’s comment or review within 30 days. Merge and return PR outcomes use 90 days. Only fully observed windows enter each rate. These are separate outcomes, not sequential funnel stages."));
+    const journeyMetrics = ["newcomer_response_share", "newcomer_merge_share", "newcomer_return_share"];
+    journey.append(plot(journeyMetrics.map(metric => ({name: label(metric), points: filtered.filter(r => r.metric === metric).sort((a, b) => a.start.localeCompare(b.start))}))));
+    const cohortPeriods = filtered.filter(r => r.metric === "newcomer_pr_authors").sort((a, b) => a.start.localeCompare(b.start));
+    journey.append(table(["First PR cohort", "Authors", "Responded within 30 days", "Merged within 90 days", "Returned within 90 days", "Source coverage"], cohortPeriods.map(period => {
+      const rows = filtered.filter(r => r.start === period.start && r.end === period.end);
+      const outcome = (count, eligible, share) => `${value(find("newcomer_" + count, rows))} / ${value(find("newcomer_" + eligible, rows))} eligible · ${value(find("newcomer_" + share + "_share", rows))}`;
+      return [period.start.slice(0, 7), value(period), outcome("responded", "response_eligible", "response"), outcome("merged", "followup_eligible", "merge"), outcome("returned", "followup_eligible", "return"), period.status];
+    }), "Each outcome shows successful authors / eligible authors and the rate. A dash means the rate is unavailable or below the configured sample floor. Recent cohorts need more observation time."));
+    root.append(journey);
     const trend = section("Activity over time"),
       metric = "commits";
     const points = filtered
@@ -622,7 +648,7 @@ function plot(series, compact = false) {
     for (const factor of [0, .5, 1]) {
       const y = bottom - factor * (bottom - top);
       element("line", {x1: left, x2: right, y1: y, y2: y, stroke: "#d9e3dd"});
-      element("text", {x: left - 8, y: y + 4, "text-anchor": "end", "font-size": 12}, (maximum * factor * (percent ? 100 : 1)).toLocaleString(undefined, {maximumFractionDigits: 1}));
+      element("text", {x: left - 8, y: y + 4, "text-anchor": "end", "font-size": 12}, (maximum * factor * (percent ? 100 : 1)).toLocaleString(undefined, {maximumFractionDigits: 1}) + (percent ? "%" : ""));
     }
     const points = series[0]?.points || [];
     [0, points.length - 1].forEach((i, j) => {
@@ -655,4 +681,28 @@ function plot(series, compact = false) {
     wrap.append(legend);
   }
   return wrap;
+}
+
+function ageBars(rows, title) {
+  const wrap = node("div", undefined, "age-chart");
+  if (rows.some(({row}) => !row || row.value === null)) {
+    wrap.append(node("p", "Age distribution is unavailable for this period. Inspect coverage."));
+    return wrap;
+  }
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("viewBox", "0 0 520 184");
+  svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label", title + " backlog by age. Exact values and coverage follow in the table.");
+  const maximum = Math.max(1, ...rows.map(({row}) => row.value));
+  rows.forEach(({name, row}, i) => {
+    const y = i * 44 + 8;
+    const text = document.createElementNS(ns, "text");
+    text.setAttribute("x", "0"); text.setAttribute("y", String(y + 18)); text.setAttribute("font-size", "14"); text.textContent = name; svg.append(text);
+    const bar = document.createElementNS(ns, "rect");
+    bar.setAttribute("x", "145"); bar.setAttribute("y", String(y)); bar.setAttribute("width", String(row.value / maximum * 310)); bar.setAttribute("height", "28"); bar.setAttribute("rx", "3"); bar.setAttribute("fill", "#176653"); svg.append(bar);
+    const count = document.createElementNS(ns, "text");
+    count.setAttribute("x", String(153 + row.value / maximum * 310)); count.setAttribute("y", String(y + 18)); count.setAttribute("font-size", "14"); count.textContent = value(row); svg.append(count);
+  });
+  wrap.append(svg); return wrap;
 }
