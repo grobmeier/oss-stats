@@ -200,14 +200,3 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
-
-================================================================================
-Third-party content
-================================================================================
-
-This product includes substantially-modified content adapted from the
-"skill-creator" skill in the awesome-claude-skills repository by
-Julius Brussee (https://github.com/JuliusBrussee/awesome-claude-skills),
-licensed under the Apache License, Version 2.0. See
-skills/write-skill/SKILL.md § "Provenance" for the specific upstream
-commit and the scope of the framework's modifications.

@@ -1,17 +1,16 @@
-# Iceberg Ecosystem Health
+# Logging Stats
 
-Copyright Russell Spitzer
+Copyright Christian Grobmeier and contributors.
 
-Licensed under the Apache License, Version 2.0. See the LICENSE file.
+This project includes adapted code and reporting ideas from Iceberg Ecosystem
+Health, copyright Russell Spitzer, under the Apache License, Version 2.0.
+https://github.com/RussellSpitzer/iceberg-community-health
+Reference revision: 5e26873783da1849343a7c3dd0403f9ef56240d4.
 
-Metric definitions for contributor concentration, review latency, retention,
-and release cadence are adapted from
-https://github.com/pmcfadin/cassandra-project-health, which is licensed under
-the Apache License, Version 2.0. This repository does not copy that project's
-source. https://github.com/pmcfadin/cassandra-pr-review was consulted as
-design research only; its code and assets are not included.
-The dev-list tone metric idea is adapted from pmcfadin/cassandra-project-health.
+The upstream project credits metric definitions for contributor concentration,
+review latency, retention, and release cadence to Patrick McFadin's
+Apache-2.0 cassandra-project-health project:
+https://github.com/pmcfadin/cassandra-project-health
 
-Apache Magpie is pinned as a git submodule at third_party/magpie and remains
-covered by its own Apache License, Version 2.0. Its source is not copied into
-this repository.
+Apache Magpie and the upstream project's datasets are not included.
+See LICENSE and docs/PROVENANCE.md.
