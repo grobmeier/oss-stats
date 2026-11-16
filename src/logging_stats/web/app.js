@@ -25,7 +25,7 @@ function value(row) {
     ? (n * 100).toFixed(1) + "%"
     : Number.isInteger(n)
       ? n.toLocaleString()
-      : n.toFixed(1);
+      : n.toFixed(/concentration/.test(row.metric) ? 3 : 1);
 }
 function table(headers, rows, caption) {
   const wrap = node("div", undefined, "table-wrap"),
@@ -58,10 +58,11 @@ function table(headers, rows, caption) {
 }
 function section(title) {
   const n = node("section");
+  n.id = title.toLowerCase().replaceAll(/[^a-z0-9]+/g, "-");
   n.append(node("h2", title));
   return n;
 }
-fetch("./metrics.json")
+fetch("./metrics.json", {cache: "no-store"})
   .then((r) => {
     if (!r.ok) throw Error("Report could not be loaded");
     return r.json();
@@ -70,7 +71,22 @@ fetch("./metrics.json")
   .catch((e) => {
     $("freshness").textContent = e.message;
   });
+$("reload").addEventListener("click", () => {
+  const button = $("reload");
+  button.disabled = true;
+  fetch("./metrics.json", {cache: "no-store"})
+    .then(r => { if (!r.ok) throw Error("The published report could not be reloaded."); return r.json(); })
+    .then(report => { start(report); $("freshness").append(" · Published snapshot checked just now."); })
+    .catch(error => { $("freshness").textContent = error.message + " The current view remains available."; })
+    .finally(() => { button.disabled = false; });
+});
 function start(report) {
+  if (report.schema_version !== 1 || !Array.isArray(report.metrics) || !Array.isArray(report.projects))
+    throw Error("Unsupported published report format.");
+  ["warning", "definitions", "sources"].forEach(id => $(id).replaceChildren());
+  $("module").replaceChildren(new Option("All modules", ""));
+  $("module-label").hidden = true;
+  const overview = report.dashboard_id || "logging";
   const scope = document.body.dataset.scope,
     project = report.projects.find((p) => p.id === scope);
   $("freshness").textContent =
@@ -82,9 +98,9 @@ function start(report) {
   }
   const incomplete = Object.entries(report.sources).filter(
     ([key, s]) =>
-      (scope === "logging" ||
+      (scope === overview ||
         key.startsWith(scope + ":") ||
-        key === "logging:mail") &&
+        key === overview + ":mail") &&
       !["complete", "disabled"].includes(s.status),
   );
   if (incomplete.length) {
@@ -119,9 +135,9 @@ function start(report) {
   });
   const sources = Object.entries(report.sources).filter(
     ([key]) =>
-      scope === "logging" ||
+      scope === overview ||
       key.startsWith(scope + ":") ||
-      key === "logging:mail",
+      key === overview + ":mail",
   );
   if (sources.some(([, s]) => s.scope_history?.length)) {
     $("warning").append(
@@ -152,23 +168,48 @@ function start(report) {
     ),
   ].sort();
   const latest = dates.at(-1);
-  $("to").value = latest;
+  if (!latest) throw Error("No report periods are available.");
+  for (const id of ["from", "to"]) {
+    $(id).min = dates[0]; $(id).max = latest;
+  }
   function setRange() {
     const n = Number($("range").value);
-    $("from").value = dates[Math.max(0, dates.length - n)];
-    $("to").value = latest;
+    if (n) { $("from").value = dates[Math.max(0, dates.length - n)]; $("to").value = latest; }
   }
-  setRange();
-  $("range").addEventListener("change", () => {
+  function restore() {
+    const params = new URLSearchParams(location.search);
+    $("range").value = "12"; $("group").value = "monthly"; $("module").value = "";
     setRange();
-    render();
-  });
-  ["from", "to", "group", "module"].forEach((id) =>
-    $(id).addEventListener("change", render),
-  );
-  $("filters").addEventListener("submit", (e) => e.preventDefault());
+    if (params.has("from")) $("from").value = params.get("from");
+    if (params.has("to")) $("to").value = params.get("to");
+    if (["monthly", "quarterly", "partial month"].includes(params.get("group"))) $("group").value = params.get("group");
+    if (project?.modules && Object.hasOwn(project.modules, params.get("module"))) $("module").value = params.get("module");
+    if (params.has("from") || params.has("to")) $("range").value = "custom";
+  }
+  restore();
+  $("range").onchange = () => { setRange(); render(); };
+  for (const id of ["from", "to"]) $(id).onchange = () => { $("range").value = "custom"; render(); };
+  for (const id of ["group", "module"]) $(id).onchange = render;
+  $("reset").onclick = () => {
+    $("range").value = "12"; $("group").value = "monthly"; $("module").value = "";
+    setRange(); render();
+  };
+  $("filters").onsubmit = e => { e.preventDefault(); render(); };
+  window.onpopstate = () => { restore(); render(); };
   function render() {
     const root = $("dashboard");
+    const partial = $("group").value === "partial month";
+    for (const id of ["from", "to", "range"]) $(id).disabled = partial;
+    const error = partial ? "" : CommunityView.range($("from").value, $("to").value, dates);
+    $("range-status").textContent = error || (partial ? "Current partial month. Compare it only with other partial periods." : `Trend interval: ${$("from").value} through ${$("to").value}.`);
+    for (const id of ["from", "to"]) $(id).setAttribute("aria-invalid", String(Boolean(error)));
+    if (error) { $("range-status").className = "notice"; return; }
+    $("range-status").className = "scope-note";
+    const query = CommunityView.query({from: $("from").value, to: $("to").value, group: $("group").value, module: $("module").value});
+    history.replaceState(null, "", location.pathname + "?" + query + location.hash);
+    document.querySelectorAll('nav[aria-label="Projects"] a').forEach(a => {
+      const url = new URL(a.href); url.search = query; a.href = url.href;
+    });
     root.replaceChildren();
     const selected = scope + ($("module").value ? "/" + $("module").value : "");
     const repositoryMetric = (name) =>
@@ -185,10 +226,10 @@ function start(report) {
         r.grouping === grouping &&
         (grouping === "partial month" ||
           (r.start.slice(0, 7) >= $("from").value &&
-            r.start.slice(0, 7) <= $("to").value)),
+            r.end <= CommunityView.endExclusive($("to").value))),
     );
     if (!filtered.length) {
-      root.append(node("p", "No periods match this range."));
+      root.append(node("p", "No complete periods match this range. Quarters must fit entirely inside the selected months."));
       return;
     }
     const end = filtered
@@ -204,7 +245,7 @@ function start(report) {
         "scope-note",
       ),
     );
-    if (scope === "logging") {
+    if (scope === overview) {
       const s = section("Across the projects");
       s.append(
         table(
@@ -222,9 +263,9 @@ function start(report) {
                 r.scope === p.id && r.end === end && r.grouping === grouping,
             );
             const name = node("span");
-            name.append(link(p.name, "./" + p.id + ".html"));
+            name.append(link(p.name, "./" + p.id + ".html?" + query));
             if (p.status)
-              name.append(node("small", " · Dormant / under rework"));
+              name.append(node("small", " · " + (p.status_short || "See project status")));
             const latestRelease = [...(report.releases[p.id] || [])]
               .filter((r) => r.verified)
               .sort((a, b) =>
@@ -348,6 +389,11 @@ function start(report) {
           node("div", value(row), "value"),
           node("small", `n=${row.n ?? 0} · ${row.status}`, "status"),
         );
+        const series = filtered.filter(r => r.metric === id).sort((a, b) => a.start.localeCompare(b.start));
+        card.append(plot([{name: label(id), points: series}], true));
+        const change = CommunityView.delta(series);
+        const formatted = change === null ? "Change unavailable" : `${change > 0 ? "+" : ""}${/share|retention/.test(id) ? (change * 100).toFixed(1) + " percentage points" : value({...row, value: change})} from first period`;
+        card.append(node("small", formatted, "delta"));
         const d = node("details");
         d.append(
           node("summary", "Definition"),
@@ -355,6 +401,9 @@ function start(report) {
         );
         if (row.reason) d.append(node("p", row.reason));
         card.append(d);
+        const history = node("details"); history.append(node("summary", "Period values"));
+        history.append(table(["Period", "Value", "Coverage"], series.map(r => [r.start.slice(0, 10), value(r), r.status])));
+        card.append(history);
         cards.append(card);
       }
       if (cards.childNodes.length) {
@@ -367,39 +416,23 @@ function start(report) {
     const points = filtered
       .filter((r) => r.metric === metric)
       .sort((a, b) => a.start.localeCompare(b.start));
-    const chart = node("div", undefined, "chart"),
-      valid = points.filter((r) => r.value !== null);
-    if (valid.length) {
-      const max = Math.max(1, ...valid.map((r) => r.value));
-      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-      svg.setAttribute("viewBox", "0 0 1000 130");
-      svg.setAttribute("role", "img");
-      svg.setAttribute(
-        "aria-label",
-        "Commit counts by period. Exact values follow in the table.",
-      );
-      let segment = [];
-      function drawSegment() {
-        if (!segment.length) return;
-        const line = document.createElementNS(svg.namespaceURI, "polyline");
-        line.setAttribute("points", segment.join(" "));
-        line.setAttribute("fill", "none");
-        line.setAttribute("stroke", "#176653");
-        line.setAttribute("stroke-width", "3");
-        svg.append(line);
-        segment = [];
-      }
-      points.forEach((r, i) => {
-        if (r.value === null) drawSegment();
-        else
-          segment.push(
-            `${20 + (i * 960) / Math.max(1, points.length - 1)},${115 - (r.value / max) * 100}`,
-          );
-      });
-      drawSegment();
-      chart.append(svg);
-    } else
-      chart.append(node("p", "No covered commit observations in this range."));
+    const chart = node("div", undefined, "trend-grid");
+    const chartGroups = [
+      ["Contributions", ["commits", "commit_authors"]],
+      ["Pull request flow", ["prs_opened", "prs_merged", "prs_closed"]],
+      ["Open work at period end", ["pr_backlog", "issue_backlog"]],
+      ["First human response · hours", ["first_review_hours", "issue_reply_hours", "discussion_reply_hours"]],
+      ["Unanswered cohort share · percent", ["pr_unreviewed_share", "issue_unanswered_share", "discussion_unanswered_share"]],
+    ];
+    for (const [title, metrics] of chartGroups) {
+      const panel = node("div", undefined, "trend-panel");
+      panel.append(node("h3", title));
+      const series = metrics.map(metric => ({name: label(metric), points: filtered.filter(r => r.metric === metric).sort((a, b) => a.start.localeCompare(b.start))}));
+      panel.append(plot(series));
+      const details = node("details"); details.append(node("summary", "Exact chart values"));
+      details.append(table(["Period", ...series.map(s => s.name)], points.map(p => [p.start.slice(0, 10), ...series.map(s => value(s.points.find(r => r.start === p.start)))])));
+      panel.append(details); chart.append(panel);
+    }
     trend.append(
       chart,
       table(
@@ -504,14 +537,14 @@ function start(report) {
             .map((r) => [
               link(r.version + " / " + r.line, r.url),
               r.at ? `${r.at} · ${r.date_kind}` : r.date_kind,
-              link("Official archive", r.archive_url),
+              link("Release evidence", r.archive_url),
             ]),
         ),
       );
       root.append(releases);
       const shared = section("Shared development list");
       shared.append(
-        link("View Logging-wide list activity", "./index.html#shared-list"),
+        link("View shared list activity", "./index.html?" + query + "#shared-list"),
         node(
           "p",
           "The shared list is not assigned to individual projects. Other mailing lists and historical JIRA records are outside coverage.",
@@ -519,9 +552,9 @@ function start(report) {
       );
       if (project.jira)
         shared.append(link("Legacy issue tracker", project.jira));
-      root.append(shared);
+      if (report.mail_archive || project.jira) root.append(shared);
     } else {
-      const s = section("Shared Logging development list");
+      const s = section("Shared development list");
       s.id = "shared-list";
       const rows = report.metrics.filter(
         (r) =>
@@ -545,7 +578,7 @@ function start(report) {
           ]),
         ),
       );
-      root.append(s);
+      if (report.mail_archive) root.append(s);
       const inactive = section("Inactive project catalogue");
       inactive.append(
         table(
@@ -553,12 +586,73 @@ function start(report) {
           report.inactive.map((p) => [
             link(p.name, p.url),
             p.status,
-            link("Logging project catalogue", "https://logging.apache.org/"),
+            link("Project status", p.url),
           ]),
         ),
       );
-      root.append(inactive);
+      if (report.inactive.length) root.append(inactive);
     }
+    $("sections").replaceChildren();
+    [...root.querySelectorAll("section"), $("methodology"), $("coverage")].forEach(s => {
+      $("sections").append(link(s.querySelector("h2").textContent, "#" + s.id));
+    });
   }
   render();
+}
+
+function plot(series, compact = false) {
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("viewBox", compact ? "0 0 320 64" : "0 0 640 240");
+  svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label", series.map(s => s.name).join(", ") + ". Missing values form gaps. Exact values follow in the table.");
+  svg.classList.add(compact ? "sparkline" : "trend-chart");
+  const rows = series.flatMap(s => s.points).filter(r => r.value !== null);
+  const maximum = Math.max(1, ...rows.map(r => r.value));
+  const percent = rows.length && rows.every(r => /share|retention/.test(r.metric));
+  const left = compact ? 3 : 64, right = compact ? 317 : 620, top = 8, bottom = compact ? 56 : 198;
+  const colors = ["#176653", "#ad531c", "#415bb0"];
+  function element(tag, attrs, text) {
+    const e = document.createElementNS(ns, tag);
+    Object.entries(attrs).forEach(([k, v]) => e.setAttribute(k, v));
+    if (text !== undefined) e.textContent = text;
+    svg.append(e); return e;
+  }
+  if (!compact) {
+    for (const factor of [0, .5, 1]) {
+      const y = bottom - factor * (bottom - top);
+      element("line", {x1: left, x2: right, y1: y, y2: y, stroke: "#d9e3dd"});
+      element("text", {x: left - 8, y: y + 4, "text-anchor": "end", "font-size": 12}, (maximum * factor * (percent ? 100 : 1)).toLocaleString(undefined, {maximumFractionDigits: 1}));
+    }
+    const points = series[0]?.points || [];
+    [0, points.length - 1].forEach((i, j) => {
+      if (points[i]) element("text", {x: j ? right : left, y: 225, "text-anchor": j ? "end" : "start", "font-size": 12}, points[i].start.slice(0, 7));
+    });
+  }
+  series.forEach((s, index) => {
+    let segment = [];
+    function draw() {
+      if (segment.length) element("polyline", {points: segment.join(" "), fill: "none", stroke: colors[index % colors.length], "stroke-width": compact ? 2 : 2.5});
+      segment = [];
+    }
+    s.points.forEach((r, i) => {
+      if (r.value === null) { draw(); return; }
+      const x = left + i * (right - left) / Math.max(1, s.points.length - 1);
+      const y = bottom - r.value / maximum * (bottom - top);
+      segment.push(`${x},${y}`);
+      if (!compact || s.points.length === 1) {
+        const dot = element("circle", {cx: x, cy: y, r: 3, fill: colors[index % colors.length], tabindex: 0});
+        const title = document.createElementNS(ns, "title"); title.textContent = `${s.name}, ${r.start.slice(0, 7)}: ${value(r)} (${r.status})`; dot.append(title);
+      }
+    }); draw();
+  });
+  const wrap = node("div", undefined, compact ? "spark-wrap" : "chart");
+  if (!rows.length) wrap.append(node("p", "No covered values for this interval."));
+  else wrap.append(svg);
+  if (!compact) {
+    const legend = node("div", undefined, "legend");
+    series.forEach((s, i) => { const key = node("span", s.name); key.className = "series-" + i; legend.append(key); });
+    wrap.append(legend);
+  }
+  return wrap;
 }

@@ -1,0 +1,24 @@
+# Starter catalogue. Expand projects to cover additional repositories.
+# Releases use published GitHub releases, not archive verification.
+dashboard_id: maven
+definition_version: '1.0'
+title: Apache Maven community activity
+brand: Maven Stats
+base_path: /maven/
+target_url: https://stats.grobmeier.de/maven/
+history_months: 72
+sample_floor: 5
+stale_days: 28
+projects:
+- id: maven-core
+  name: Maven Core
+  repo: apache/maven
+  release_pattern: maven-(?P<version>\d+\.\d+\.\d+)
+- id: resolver
+  name: Maven Resolver
+  repo: apache/maven-resolver
+  release_pattern: maven-resolver-(?P<version>\d+\.\d+\.\d+)
+mail:
+  list: dev
+  domain: maven.apache.org
+  archive: https://lists.apache.org/list.html?dev@maven.apache.org

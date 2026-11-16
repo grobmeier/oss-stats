@@ -43,7 +43,7 @@ DEFINITIONS = {
     "discussion_unanswered_share": "Unanswered share of discussions created in this period. Recent cohorts have less observation time.",
     "discussion_answered": "Answer-capable discussions with a marked answer in an observed snapshot at period end. No historical inference.",
     "discussion_answered_share": "Marked-answer share among observed answer-capable discussions. An unmarked answer does not establish an unresolved question.",
-    "mail_messages": "Human messages sent to the shared Logging development list during this period.",
+    "mail_messages": "Human messages sent to the shared development list during this period.",
     "mail_participants": "Distinct normalised human sender identities active during the period. No names or addresses are published.",
     "mail_threads": "Observed root messages sent during the period. Unlinked messages are not joined by subject.",
     "mail_reply_hours": "Median time from a root message to the first message by another human before period end.",
@@ -251,14 +251,17 @@ def windows(at, count):
 
 
 def build_report(store, config, at):
-    report = {"schema_version": 1, "definition_version": config["definition_version"], "as_of": at,
+    overview = config.get("dashboard_id", "logging")
+    mail_source = overview + ":mail"
+    report = {"dashboard_id": overview, "brand": config.get("brand", config["title"]), "base_path": config.get("base_path", "/" + overview + "/"), "schema_version": 1, "definition_version": config["definition_version"], "as_of": at,
               "title": config["title"], "target_url": config["target_url"], "projects": config["projects"], "stale_days": config["stale_days"],
-              "inactive": config["inactive"], "mail_archive": config["mail"]["archive"], "metrics": [], "waiting": {}, "sources": {}, "releases": {},
+              "inactive": config.get("inactive", []), "mail_archive": (config.get("mail") or {}).get("archive"), "metrics": [], "waiting": {}, "sources": {}, "releases": {},
               "definitions": DEFINITIONS, "provenance": {"author": "Russell Spitzer", "url": "https://github.com/RussellSpitzer/iceberg-community-health",
               "revision": "5e26873783da1849343a7c3dd0403f9ef56240d4"}}
+    expected = [f"{p['id']}:{kind}" for p in config["projects"] for kind in ("metadata", "commits", "pulls", "issues", "discussions", "releases")] + ([mail_source] if config.get("mail") else [])
     for source, info in store.state.items():
-        report["sources"][source] = {k: v for k, v in info.items() if k not in ("snapshot", "digest")}
-    expected = [f"{p['id']}:{kind}" for p in config["projects"] for kind in ("metadata", "commits", "pulls", "issues", "discussions", "releases")] + ["logging:mail"]
+        if source in expected:
+            report["sources"][source] = {k: v for k, v in info.items() if k not in ("snapshot", "digest")}
     for source in expected:
         report["sources"].setdefault(source, {"status": "unavailable", "reason": "Not collected"})
     all_records = {kind: [] for kind in ("commits", "pulls", "issues", "discussions", "releases")}
@@ -289,25 +292,26 @@ def build_report(store, config, at):
         # A transferred GitHub item retains its global node ID. Until the next
         # full reconciliation, an older source snapshot can still contain it.
         all_records[kind] = list({r["id"]: r for r in sorted(all_records[kind], key=lambda r: r.get("updated_at", ""))}.values())
-    selections.append(("logging", all_records))
-    selections.append(("shared-list", {"mail": store.get("logging:mail")}))
+    selections.append((overview, all_records))
+    if config.get("mail"):
+        selections.append(("shared-list", {"mail": store.get(mail_source)}))
     for scope, records in selections:
         for start, end, grouping in windows(at, config["history_months"]):
             values = calculate(records, start, end, config["sample_floor"], config["stale_days"])
             for name, result in values.items():
                 kind = channel(name)
-                if scope == "logging" and kind == "releases":
+                if scope == overview and kind == "releases":
                     continue
                 if scope == "shared-list" and kind != "mail" or scope != "shared-list" and kind == "mail":
                     continue
                 if "/" in scope and kind not in ("commits", "pulls"):
                     continue
-                sources = [report["sources"].get(f"{p['id']}:{kind}", {}) for p in config["projects"]] if scope == "logging" else [report["sources"].get("logging:mail" if scope == "shared-list" else scope.split("/")[0] + ":" + kind, {})]
+                sources = [report["sources"].get(f"{p['id']}:{kind}", {}) for p in config["projects"]] if scope == overview else [report["sources"].get(mail_source if scope == "shared-list" else scope.split("/")[0] + ":" + kind, {})]
                 source_statuses = {s.get("status", "unavailable") for s in sources}
                 unavailable = source_statuses <= {"disabled", "unavailable", "failed"}
                 if unavailable:
                     result.update(value=None, status="disabled" if source_statuses == {"disabled"} else "unavailable", reason="Source coverage is unavailable. See Coverage.")
-                elif source_statuses != {"complete"}:
+                elif source_statuses - {"disabled"} != {"complete"}:
                     result.update(status="partial" if result["value"] is not None else result["status"], reason="Incomplete source coverage. See Coverage.")
                 coverage = [s.get("coverage_start") for s in sources if s.get("coverage_start")]
                 if coverage and start < max(coverage) and kind != "commits":

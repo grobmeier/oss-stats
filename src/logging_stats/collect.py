@@ -289,6 +289,17 @@ def archive_versions(text, project):
 
 
 def release_records(api, project):
+    if not project.get("archive"):
+        rows = []
+        for release in api.pages(f"repos/{project['repo']}/releases"):
+            match = re.fullmatch(project["release_pattern"], release["tag_name"])
+            if not match or release["draft"] or release["prerelease"]:
+                continue
+            version = match["version"].replace("_", ".")
+            rows.append({"id": version, "version": version, "line": version.split(".")[0] + ".x",
+                         "at": norm_ts(release["published_at"]), "date_kind": "GitHub release publication (repository evidence)",
+                         "url": release["html_url"], "archive_url": release["html_url"], "verified": True})
+        return rows
     archive = read_url(project["archive"]).decode()
     versions = archive_versions(archive, project)
     if not versions:
@@ -397,17 +408,18 @@ def run(api, store, config, at, start, limit=None, full=False, git=True, mail=Tr
         else:
             store.fail(f"{pid}:commits", "unavailable", "Git collection omitted for this run", at)
         collect(f"{pid}:releases", lambda: release_records(api, project))
-    if mail:
+    mail_source = config.get("dashboard_id", "logging") + ":mail"
+    if mail and config.get("mail"):
         from .timeutil import completed_month, month_ends
         months = [completed_month(e)[0][:7] for e in month_ends(at, config["history_months"]) if completed_month(e)[0] >= start]
         if limit:
             months = months[-1:]
-        old = store.state.get("logging:mail", {})
-        previous = [] if full or limit else store.get("logging:mail")
+        old = store.state.get(mail_source, {})
+        previous = [] if full or limit else store.get(mail_source)
         if previous and old.get("status") == "complete":
             months = [m for m in months if m >= old["last_success"][:7]]
         months = sorted(set(months + [at[:7]]))
-        collect("logging:mail", lambda: previous + mail_records(config, months), sampled=True, coverage_months=months)
-    else:
-        store.fail("logging:mail", "unavailable", "Mail collection omitted for this run", at)
+        collect(mail_source, lambda: previous + mail_records(config, months), sampled=True, coverage_months=months)
+    elif config.get("mail"):
+        store.fail(mail_source, "unavailable", "Mail collection omitted for this run", at)
     return store.state

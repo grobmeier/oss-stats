@@ -83,3 +83,27 @@ public exports. Waiting-work titles are escaped and email addresses are
 omitted. Cross-channel identities remain separate.
 
 See the [methodology](docs/METHODOLOGY.md) and [operations guide](docs/OPERATIONS.md).
+
+## Reuse for another community
+
+The same application supports separate communities through YAML configuration.
+See [configuration and reuse](docs/CONFIGURATION.md). Starter configurations exist
+for Maven Core and Resolver, and Commons Lang and IO. These are initial
+catalogues, not complete inventories of Maven or Commons repositories.
+
+```sh
+.venv/bin/logging-stats --config config/maven.yaml collect
+.venv/bin/logging-stats --config config/maven.yaml render
+.venv/bin/logging-stats --config config/commons.yaml collect
+.venv/bin/logging-stats --config config/commons.yaml render
+```
+
+Each configuration selects its own data directory, output directory, page
+navigation, shared list, and URL path. Adding repositories requires configuration
+changes and collection. It requires no application code changes.
+
+Range controls update charts automatically. Custom months receive validation.
+Project links retain the selected months and grouping. Cards show the latest
+selected period. Sparklines and absolute changes compare periods within the
+selected interval. Counts of people and response medians are never summed.
+The reload button checks the latest published snapshot without starting collection.

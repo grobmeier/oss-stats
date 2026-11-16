@@ -1,0 +1,24 @@
+# Starter catalogue. Expand projects to cover additional repositories.
+# Releases use published GitHub releases, not archive verification.
+dashboard_id: commons
+definition_version: '1.0'
+title: Apache Commons community activity
+brand: Commons Stats
+base_path: /commons/
+target_url: https://stats.grobmeier.de/commons/
+history_months: 72
+sample_floor: 5
+stale_days: 28
+projects:
+- id: lang
+  name: Commons Lang
+  repo: apache/commons-lang
+  release_pattern: (?:rel/)?commons-lang-(?P<version>\d+\.\d+\.\d+)
+- id: io
+  name: Commons IO
+  repo: apache/commons-io
+  release_pattern: (?:rel/)?commons-io-(?P<version>\d+\.\d+\.\d+)
+mail:
+  list: dev
+  domain: commons.apache.org
+  archive: https://lists.apache.org/list.html?dev@commons.apache.org

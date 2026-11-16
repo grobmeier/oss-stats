@@ -11,4 +11,9 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install -e '.[dev]'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
       - run: python -m pytest
+      - run: node --test tests/view.test.cjs
+      - run: node --check src/logging_stats/web/app.js

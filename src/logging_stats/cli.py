@@ -15,9 +15,9 @@ from .timeutil import completed_month, month_ends, norm_ts
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="Independent Apache Logging community activity reports")
+    parser = argparse.ArgumentParser(description="Independent community activity reports")
     parser.add_argument("--config", type=Path, default=Path("config/logging.yaml"))
-    parser.add_argument("--data", type=Path, default=Path("data/local"))
+    parser.add_argument("--data", type=Path, default=None)
     sub = parser.add_subparsers(dest="command", required=True)
     collect = sub.add_parser("collect", help="Read public sources and checkpoint internal snapshots")
     collect.add_argument("--as-of")
@@ -30,11 +30,12 @@ def main(argv=None):
     collect.add_argument("--request-budget", type=int, default=10000)
     render = sub.add_parser("render", help="Build a static report from local snapshots")
     render.add_argument("--as-of")
-    render.add_argument("--output", type=Path, default=Path("site/logging"))
+    render.add_argument("--output", type=Path, default=None)
     render.add_argument("--allow-partial", action="store_true", help="Explicitly render incomplete data with coverage warnings")
     args = parser.parse_args(argv)
     config = load(args.config)
-    store = Store(args.data)
+    store = Store(args.data or config["data_dir"])
+    store.bind(config)
     at = norm_ts(args.as_of or datetime.now(UTC).isoformat())
     if args.command == "collect":
         lock = (store.root / "collect.lock").open("w")
@@ -63,8 +64,9 @@ def main(argv=None):
         parser.error("Incomplete sources remain. Inspect coverage or explicitly use --allow-partial for a local review.")
     if not report["sources"]:
         parser.error("No collected sources exist. Run collect first.")
-    publish(report, args.output)
-    print(args.output / "index.html")
+    output = args.output or Path(config["output_dir"])
+    publish(report, output)
+    print(output / "index.html")
     return 0
 
 

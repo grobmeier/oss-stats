@@ -26,6 +26,23 @@ class Store:
         self.state_path = self.root / "state.json"
         self.state = json.loads(self.state_path.read_text()) if self.state_path.exists() else {}
 
+    def bind(self, config):
+        """Prevent a dashboard from reusing another catalogue's private data."""
+        path = self.root / "catalogue.json"
+        catalogue = {"dashboard_id": config["dashboard_id"],
+                     "repositories": {p["id"]: p["repo"] for p in config["projects"]},
+                     "mail": config.get("mail")}
+        if path.exists():
+            previous = json.loads(path.read_text())
+            old_repos = previous["repositories"]
+            if (previous["dashboard_id"] != catalogue["dashboard_id"] or previous["mail"] != catalogue["mail"]
+                    or any(pid in old_repos and old_repos[pid] != repo for pid, repo in catalogue["repositories"].items())):
+                raise ValueError("Data directory belongs to a different catalogue. Choose a new --data directory.")
+            catalogue["repositories"] = old_repos | catalogue["repositories"]
+        elif self.state and config["dashboard_id"] != "logging":
+            raise ValueError("Unbound legacy data can only belong to Logging. Choose a new --data directory.")
+        atomic_json(path, catalogue)
+
     def get(self, source):
         info = self.state.get(source, {})
         if not info.get("snapshot"):
