@@ -2,7 +2,7 @@
 # Releases use published GitHub releases, not archive verification.
 dashboard_id: maven
 definition_version: '1.0'
-title: Apache Maven community activity
+title: Apache Maven
 brand: Maven Stats
 base_path: /maven/
 target_url: https://stats.grobmeier.de/maven/

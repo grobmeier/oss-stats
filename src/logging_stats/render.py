@@ -56,12 +56,10 @@ def page(scope, title, report):
 <title>{escape(title)} · {brand}</title><link rel="stylesheet" href="./style.css">
 <script src="./view.js" defer></script><script src="./app.js" defer></script></head>
 <body data-scope="{escape(scope)}"><a class="skip" href="#main">Skip to dashboard</a>
-<header><div class="brand">{brand} <span>Independent community observatory</span></div>
+<header><div class="brand">{brand}</div>
 <nav aria-label="Projects"><a href="./index.html">Overview</a>{navigation}</nav></header>
-<main id="main"><p class="eyebrow">PUBLIC COMMUNITY ACTIVITY</p><h1>{escape(title)}</h1>
-<p class="intro">Contributions, conversations, and work awaiting a response. Each measurement includes its source coverage.</p>
-<p id="freshness" role="status">Loading the local report…</p><button id="reload" type="button">Reload published report</button>
-<p class="scope-note">Reload checks the latest published snapshot. Collection and publication run separately.</p><div id="warning"></div>
+<main id="main"><h1>{escape(title)}</h1>
+<p id="freshness" role="status">Loading report…</p><div id="warning"></div>
 <form id="filters"><label>From <input id="from" type="month"></label><label>To <input id="to" type="month"></label>
 <label>Group by <select id="group"><option value="monthly">Month</option><option value="quarterly">Quarter</option><option value="partial month">Current partial month</option></select></label>
 <label>Range <select id="range"><option value="12">Last year</option><option value="36">Last 3 years</option><option value="72">Last 6 years</option><option value="custom">Custom</option></select></label>
@@ -81,4 +79,4 @@ Newcomer labels require known identity history. Archive entries without publicat
 </main><dialog id="metric-dialog" aria-labelledby="metric-dialog-title">
 <div class="dialog-header"><h2 id="metric-dialog-title">Metric details</h2><button id="metric-dialog-close" type="button" autofocus>Close</button></div>
 <div id="metric-dialog-content" tabindex="0" role="region" aria-label="Metric definition and period values"></div></dialog><footer>Adapted from <a href="https://github.com/RussellSpitzer/iceberg-community-health">Russell Spitzer’s Iceberg Community Health</a>.
-<a href="https://github.com/grobmeier/oss-stats">Source and provenance</a>. Apache-2.0. Independent project, without claimed ASF endorsement.</footer></body></html>'''
+<a href="https://github.com/grobmeier/oss-stats">Source and provenance</a>. Apache-2.0.</footer></body></html>'''

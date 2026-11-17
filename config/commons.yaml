@@ -2,7 +2,7 @@
 # Releases use published GitHub releases, not archive verification.
 dashboard_id: commons
 definition_version: '1.0'
-title: Apache Commons community activity
+title: Apache Commons
 brand: Commons Stats
 base_path: /commons/
 target_url: https://stats.grobmeier.de/commons/

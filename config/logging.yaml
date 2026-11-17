@@ -3,7 +3,7 @@ brand: Logging Stats
 data_dir: data/local
 output_dir: site/logging
 definition_version: "1.0"
-title: Apache Logging community activity
+title: Apache Logging
 base_path: /logging/
 target_url: https://stats.grobmeier.de/logging/
 history_months: 72

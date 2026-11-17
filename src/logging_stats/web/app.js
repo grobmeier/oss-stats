@@ -72,15 +72,20 @@ fetch("./metrics.json", {cache: "no-store"})
     $("freshness").textContent = e.message;
   });
 $("metric-dialog-close").addEventListener("click", () => $("metric-dialog").close());
-$("reload").addEventListener("click", () => {
-  const button = $("reload");
-  button.disabled = true;
-  fetch("./metrics.json", {cache: "no-store"})
-    .then(r => { if (!r.ok) throw Error("The published report could not be reloaded."); return r.json(); })
-    .then(report => { start(report); $("freshness").append(" · Published snapshot checked just now."); })
-    .catch(error => { $("freshness").textContent = error.message + " The current view remains available."; })
-    .finally(() => { button.disabled = false; });
-});
+function valuesButton(title, headers, rows, caption, text = "Exact chart values") {
+  const button = node("button", text, "chart-values-button");
+  button.type = "button";
+  button.setAttribute("aria-label", text + " for " + title);
+  button.setAttribute("aria-haspopup", "dialog");
+  button.addEventListener("click", () => {
+    const content = $("metric-dialog-content");
+    $("metric-dialog-title").textContent = title;
+    content.replaceChildren(table(headers, rows, caption));
+    $("metric-dialog").showModal();
+    content.scrollTop = 0;
+  });
+  return button;
+}
 function start(report) {
   if (report.schema_version !== 1 || !Array.isArray(report.metrics) || !Array.isArray(report.projects))
     throw Error("Unsupported published report format.");
@@ -465,39 +470,13 @@ function start(report) {
       panel.append(node("h3", title));
       const series = metrics.map(metric => ({name: label(metric), points: filtered.filter(r => r.metric === metric).sort((a, b) => a.start.localeCompare(b.start))}));
       panel.append(plot(series));
-      const details = node("details"); details.append(node("summary", "Exact chart values"));
-      details.append(table(["Period", ...series.map(s => s.name)], points.map(p => [p.start.slice(0, 10), ...series.map(s => value(s.points.find(r => r.start === p.start)))])));
-      panel.append(details); chart.append(panel);
+      panel.append(valuesButton(title, ["Period", ...series.map(s => s.name)], points.map(p => [CommunityView.periodLabel(p), ...series.map(s => value(s.points.find(r => r.start === p.start)))]), "One row per selected month or quarter. A dash means no covered value is available."));
+      chart.append(panel);
     }
-    trend.append(
-      chart,
-      table(
-        [
-          "Period",
-          "Commits",
-          "Commit authors",
-          "PRs opened",
-          "Issues opened",
-          "Discussions opened",
-        ],
-        points.map((p) => {
-          const rows = filtered.filter(
-            (r) => r.start === p.start && r.end === p.end,
-          );
-          return [
-            p.start.slice(0, 10),
-            ...[
-              "commits",
-              "commit_authors",
-              "prs_opened",
-              "issues_opened",
-              "discussions_opened",
-            ].map((id) => value(find(id, rows))),
-          ];
-        }),
-        "Every row is calculated independently. Missing values indicate unavailable coverage.",
-      ),
-    );
+    trend.append(chart, valuesButton("Activity by period", ["Period", "Commits", "Commit authors", "PRs opened", "Issues opened", "Discussions opened"], points.map(p => {
+      const rows = filtered.filter(r => r.start === p.start && r.end === p.end);
+      return [CommunityView.periodLabel(p), ...["commits", "commit_authors", "prs_opened", "issues_opened", "discussions_opened"].map(id => value(find(id, rows)))];
+    }), "One row per selected month or quarter. Counts belong to that period. Cards show the final selected period. A dash means no covered value is available.", "Activity table"));
     root.append(trend);
     if (project) {
       const s = section("Work awaiting a response"),
