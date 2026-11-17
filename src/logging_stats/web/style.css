@@ -329,3 +329,5 @@ section { scroll-margin-top: 20px; }
 .card { display: flex; flex-direction: column; }
 
 #reset { align-self: end; padding: 9px 12px; font-size: 13px; line-height: 1.55; }
+#sections { gap: 8px 16px; }
+#sections a { color: var(--accent); }
