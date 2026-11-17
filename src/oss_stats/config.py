@@ -46,6 +46,7 @@ def load(path=Path("config/logging.yaml")):
     config.setdefault("bot_patterns", [r"\[bot\]$", r"^dependabot", r"^renovate"])
     config.setdefault("data_dir", f"data/{dashboard}")
     config.setdefault("output_dir", f"site/{dashboard}")
+    config.setdefault("definition_version", "1.0")
     config.setdefault("history_months", 72)
     config.setdefault("sample_floor", 5)
     config.setdefault("stale_days", 28)

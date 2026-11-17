@@ -14,6 +14,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 import copy
+from pathlib import Path
 import json
 
 import pytest
@@ -99,3 +100,23 @@ def test_github_release_policy_excludes_tags_drafts_and_prereleases():
     rows = release_records(API(), {'repo': 'a/b', 'release_pattern': r'v(?P<version>\d+\.\d+\.\d+)'})
     assert len(rows) == 1 and rows[0]['version'] == '1.2.3'
     assert 'repository evidence' in rows[0]['date_kind']
+
+
+def test_documented_minimal_configuration_renders(tmp_path):
+    import re
+    document = (Path(__file__).resolve().parents[1] / 'docs/CONFIGURATION.md').read_text()
+    example = re.search(r'```yaml\n(.*?)\n```', document, re.S).group(1)
+    path = tmp_path / 'community.yaml'
+    path.write_text(example)
+    config = load(path)
+    config['history_months'] = 1
+    store = Store(tmp_path / 'data')
+    store.bind(config)
+    for project in config['projects']:
+        for channel in ('metadata', 'commits', 'pulls', 'issues', 'discussions', 'releases'):
+            store.save(project['id'] + ':' + channel, [], {'status': 'complete'})
+    report = build_report(store, config, '2026-11-16T00:00:00Z')
+    publish(report, tmp_path / 'site')
+    assert (tmp_path / 'site/index.html').is_file()
+    assert report['definition_version'] == '1.0'
+    assert report['target_url'] is None
