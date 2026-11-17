@@ -55,6 +55,14 @@ def finish_manifest(destination, version, kind):
     (destination / "BUILD.json").write_text(json.dumps(manifest, indent=2) + "\n")
 
 
+def validate_wheel(wheel, version):
+    allowed = ("oss_stats/", f"oss_stats-{version}.dist-info/")
+    with zipfile.ZipFile(wheel) as archive:
+        unexpected = [name for name in archive.namelist() if not name.startswith(allowed)]
+    if unexpected:
+        raise ValueError("Unexpected wheel contents. Remove stale build output and rebuild.")
+
+
 def build(output, binary=False):
     if sys.platform not in ("darwin", "linux"):
         raise SystemExit("Distribution builds support macOS and Linux only.")
@@ -72,6 +80,7 @@ def build(output, binary=False):
         wheel = next(wheel_dir.glob("*.whl"))
         if not wheel.name.startswith("oss_stats-" + version + "-"):
             raise SystemExit("Installed package version differs from the built wheel. Reinstall the packaging environment.")
+        validate_wheel(wheel, version)
         shutil.copy2(wheel, package / wheel.name)
         finish_manifest(package, version, "python-wheel")
         archive = output / (package.name + ".zip")
