@@ -1,13 +1,28 @@
+# Copyright 2026 Christian Grobmeier and contributors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# SPDX-License-Identifier: Apache-2.0
 import copy
 import json
 
 import pytest
 import yaml
 
-from logging_stats.config import load
-from logging_stats.metrics import build_report
-from logging_stats.render import publish
-from logging_stats.store import Store
+from oss_stats.config import load
+from oss_stats.metrics import build_report
+from oss_stats.render import publish
+from oss_stats.store import Store
 
 
 def test_three_catalogues_are_independent_and_generate_their_own_pages(tmp_path):
@@ -75,7 +90,7 @@ def test_catalogue_can_grow_and_removed_sources_remain_private(tmp_path):
 
 
 def test_github_release_policy_excludes_tags_drafts_and_prereleases():
-    from logging_stats.collect import release_records
+    from oss_stats.collect import release_records
     class API:
         def pages(self, endpoint):
             assert endpoint.endswith('/releases')

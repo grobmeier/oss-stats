@@ -1,9 +1,24 @@
+# Copyright 2026 Christian Grobmeier and contributors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# SPDX-License-Identifier: Apache-2.0
 import json
 
-from logging_stats.config import load
-from logging_stats.metrics import build_report
-from logging_stats.render import publish
-from logging_stats.store import Store
+from oss_stats.config import load
+from oss_stats.metrics import build_report
+from oss_stats.render import publish
+from oss_stats.store import Store
 
 
 def test_static_report_pages_exports_and_atomic_replacement(tmp_path):
@@ -52,7 +67,7 @@ def test_interrupted_discussion_collection_can_render_without_observations(tmp_p
 
 def test_quarterly_report_recomputes_observations_instead_of_monthly_medians(tmp_path):
     from datetime import timedelta
-    from logging_stats.timeutil import norm_ts, parse_ts
+    from oss_stats.timeutil import norm_ts, parse_ts
     store = Store(tmp_path)
     rows = []
     for n in range(11):

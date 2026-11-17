@@ -1,10 +1,25 @@
-from logging_stats.config import load
-from logging_stats.store import Store
-from logging_stats.collect import run
+# Copyright 2026 Christian Grobmeier and contributors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# SPDX-License-Identifier: Apache-2.0
+from oss_stats.config import load
+from oss_stats.store import Store
+from oss_stats.collect import run
 
 
 def test_interrupted_mail_collection_resumes_at_unfinished_month(tmp_path, monkeypatch):
-    import logging_stats.collect as collector
+    import oss_stats.collect as collector
     config = load('config/commons.yaml')
     config['history_months'] = 2
     store = Store(tmp_path)

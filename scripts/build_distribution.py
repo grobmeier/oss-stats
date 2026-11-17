@@ -1,4 +1,18 @@
 #!/usr/bin/env python3
+# Copyright 2026 Christian Grobmeier and contributors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 # SPDX-License-Identifier: Apache-2.0
 """Build shareable archives from an explicit public-file allowlist."""
 import argparse
@@ -72,7 +86,7 @@ def build(output, binary=False):
                             "--name", "oss-stats", "--distpath", str(executable_dir), "--workpath", str(work / "objects"),
                             "--specpath", str(work), "--paths", str(ROOT / "src"),
                             "--collect-all", "duckdb", "--collect-all", "yaml",
-                            "--add-data", str(ROOT / "src/logging_stats/web") + ":logging_stats/web",
+                            "--add-data", str(ROOT / "src/oss_stats/web") + ":oss_stats/web",
                             str(ROOT / "scripts/binary_entry.py")], cwd=ROOT, check=True)
             system = "macos" if sys.platform == "darwin" else "linux"
             architecture = {"aarch64": "arm64", "AMD64": "x86_64"}.get(platform.machine(), platform.machine())

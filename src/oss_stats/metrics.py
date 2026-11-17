@@ -1,3 +1,17 @@
+# Copyright 2026 Christian Grobmeier and contributors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 # SPDX-License-Identifier: Apache-2.0
 """Calendar metrics from events. Public output contains aggregates only."""
 from collections import Counter
@@ -276,7 +290,7 @@ def build_report(store, config, at):
     overview = config.get("dashboard_id", "logging")
     mail_source = overview + ":mail"
     report = {"dashboard_id": overview, "brand": config.get("brand", config["title"]), "base_path": config.get("base_path", "/" + overview + "/"), "schema_version": 1, "definition_version": config["definition_version"], "as_of": at,
-              "title": config["title"], "target_url": config["target_url"], "projects": config["projects"], "stale_days": config["stale_days"],
+              "title": config["title"], "target_url": config.get("target_url"), "projects": config["projects"], "stale_days": config["stale_days"],
               "inactive": config.get("inactive", []), "mail_archive": (config.get("mail") or {}).get("archive"), "metrics": [], "waiting": {}, "sources": {}, "releases": {},
               "definitions": DEFINITIONS, "provenance": {"author": "Russell Spitzer", "url": "https://github.com/RussellSpitzer/iceberg-community-health",
               "revision": "5e26873783da1849343a7c3dd0403f9ef56240d4"}}
