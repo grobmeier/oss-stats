@@ -5,6 +5,8 @@ import html
 import json
 import re
 import subprocess
+import time
+from urllib.error import URLError
 import urllib.request
 from datetime import UTC, datetime, timedelta
 from email import policy
@@ -241,9 +243,9 @@ def git_records(project, config, cache, start):
     return list(records.values())
 
 
-def read_url(url):
-    request = urllib.request.Request(url, headers={"User-Agent": f"oss-stats/{__version__} (+https://github.com/grobmeier/logging-stats)"})
-    with urllib.request.urlopen(request, timeout=60) as response:
+def read_url(url, timeout=60):
+    request = urllib.request.Request(url, headers={"User-Agent": f"oss-stats/{__version__} (+https://github.com/grobmeier/oss-stats)"})
+    with urllib.request.urlopen(request, timeout=timeout) as response:
         return response.read()
 
 
@@ -271,7 +273,15 @@ def mail_records(config, starts):
     rows = []
     for month in starts:
         url = f"https://lists.apache.org/api/mbox.lua?list={mail['list']}&domain={mail['domain']}&d={month}"
-        rows.extend(parse_mbox(read_url(url), config))
+        for attempt in range(3):
+            try:
+                raw = read_url(url, timeout=180)
+                break
+            except (TimeoutError, URLError) as error:
+                if attempt == 2 or (hasattr(error, "code") and error.code not in (429, 500, 502, 503, 504)):
+                    raise
+                time.sleep(2 * (attempt + 1))
+        rows.extend(parse_mbox(raw, config))
     return rows
 
 
@@ -417,10 +427,19 @@ def run(api, store, config, at, start, limit=None, full=False, git=True, mail=Tr
             months = months[-1:]
         old = store.state.get(mail_source, {})
         previous = [] if full or limit else store.get(mail_source)
-        if previous and old.get("status") == "complete":
-            months = [m for m in months if m >= old["last_success"][:7]]
+        completed = [] if full or limit else list(old.get("coverage_months", []))
         months = sorted(set(months + [at[:7]]))
-        collect(mail_source, lambda: previous + mail_records(config, months), sampled=True, coverage_months=months)
+        months = [m for m in months if m not in completed or m >= old.get("last_success", at)[:7]]
+        def fetch_mail():
+            rows = list(previous)
+            for month in months:
+                print(f"  {mail_source}: reading {month}", flush=True)
+                rows.extend(mail_records(config, [month]))
+                completed[:] = sorted(set(completed + [month]))
+                store.save(mail_source, rows, dict(old, status="partial", reason="Mail collection in progress or interrupted",
+                           attempted_at=at, coverage_start=start, coverage_months=list(completed)))
+            return rows
+        collect(mail_source, fetch_mail, sampled=True, coverage_months=completed)
     elif config.get("mail"):
         store.fail(mail_source, "unavailable", "Mail collection omitted for this run", at)
     return store.state
