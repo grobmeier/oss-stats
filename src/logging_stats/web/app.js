@@ -80,7 +80,7 @@ function valuesButton(title, headers, rows, caption, text = "Exact chart values"
   button.addEventListener("click", () => {
     const content = $("metric-dialog-content");
     $("metric-dialog-title").textContent = title;
-    content.replaceChildren(table(headers, rows, caption));
+    content.replaceChildren(node("p", caption, "scope-note"), table(headers, rows));
     $("metric-dialog").showModal();
     content.scrollTop = 0;
   });
