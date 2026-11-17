@@ -1,56 +1,73 @@
-# Community configuration
+# Configuration
 
-Run commands from the repository root. Select a YAML file with `--config`.
-Logging remains the default. Maven and Commons use separate configurations.
+Select a YAML file with `oss-stats --config path/to/community.yaml`.
+Commons, Maven, and Logging examples are included in `config/`.
+If `--config` is omitted, the CLI uses `config/logging.yaml`.
+
+## Example
+
+```yaml
+dashboard_id: example
+title: Example Community
+brand: Example Stats
+base_path: /example/
+history_months: 12
+projects:
+  - id: example-project
+    name: Example Project
+    repo: owner/repository
+```
+
+Replace the repository placeholder with a public GitHub repository.
+The report path is relative to your web host; no particular hostname is required.
 
 ## Fields
 
 | Field | Purpose |
 | --- | --- |
-| `dashboard_id` | Stable community ID and overview metric scope. Use lowercase letters, digits, and hyphens. |
+| `dashboard_id` | Community identifier and overview scope. Use lowercase letters, digits, and hyphens. |
 | `title`, `brand` | Page heading and header text. |
-| `base_path` | One public directory, such as `/maven/`. |
-| `target_url` | Intended public URL. |
-| `projects` | Explicit repository catalogue with unique `id`, display `name`, and GitHub `repo`. |
-| `data_dir` | Private directory. Defaults to `data/<dashboard_id>`. |
-| `output_dir` | Static output symlink. Defaults to `site/<dashboard_id>`. |
-| `mail` | Optional shared Apache PonyMail list: `list`, `domain`, `archive`. Omit it for GitHub-only dashboards. |
-| `history_months` | Number of complete monthly periods. Default: 72. |
-| `sample_floor`, `stale_days` | Minimum samples for rates and medians, and waiting-work age threshold. Defaults: 5 and 28. |
-| `bot_patterns`, `identity_aliases` | Internal identity rules. These do not enter public exports. |
-| `inactive` | Optional catalogue of inactive projects, with `name`, `url`, and `status`. |
+| `base_path` | Public path, such as `/example/`. |
+| `projects` | Repository entries with `id`, `name`, and `repo` in `owner/name` format. |
+| `data_dir` | Local collection directory. Default: `data/<dashboard_id>`. |
+| `output_dir` | Generated report symlink. Default: `site/<dashboard_id>`. |
+| `history_months` | Complete monthly periods to collect. Default: 72. |
+| `sample_floor` | Minimum sample for rates and medians. Default: 5. |
+| `stale_days` | Waiting-work age threshold. Default: 28. |
+| `mail` | Optional shared Apache mailing list with `list`, `domain`, and `archive`. |
+| `inactive` | Optional informational catalogue with `name`, `url`, and `status`. |
 
-Each project can configure `modules` as named path-prefix lists. These filters
-apply to commits and pull requests. They can overlap. `status`, `status_short`,
-`status_url`, and `jira` provide optional context and evidence links.
+Omit `mail` for a dashboard without mailing-list collection.
+For an Apache development list, set `list: dev`, the community's mail domain,
+and the archive URL. Shared mail metrics appear once in the overview.
 
-## Releases
+Project entries can define additional `branches` and named `modules` containing
+path prefixes. Module filters apply to commits and pull requests. The default
+branch comes from GitHub. `status`, `status_short`, `status_url`, and `jira`
+can supply project context and links.
+
+## Release sources
 
 `release_pattern` must contain a named `version` group. The default matches
-`1.2.3` and `v1.2.3`. Set repository-specific tag rules when necessary.
+`1.2.3` and `v1.2.3`. Configure the pattern for the repository's tag names.
+
+Without `archive`, the collector reads matching published GitHub releases.
 With `archive`, versions must also appear in the configured official archive.
-Without `archive`, the collector uses non-draft, non-prerelease GitHub releases
-that match the pattern. It labels these as repository evidence. Tags alone do
-not become published releases. An empty GitHub release list means no evidence
-from that source, not that the project never released anything.
+Tag-only versions do not establish a published release. An empty GitHub release
+list does not establish that a project has never released software.
 
-The Maven and Commons configurations use GitHub release evidence.
-Review archive layout and version rules before adding official archive evidence.
+The Maven and Commons examples currently use GitHub release records. The Logging
+example also configures official archives for selected projects.
 
-## Data separation and catalogue changes
+## Catalogue changes
 
-The CLI binds each private directory to its community, repository IDs, and mail
-source. It rejects reuse by another community or a changed repository under an
-existing ID. Select a new `--data` directory for those changes. Adding or removing
-repository entries is supported. Removed entries remain private and do not enter
-the current report. Reintroducing the same ID requires the original repository.
-Logging retains its existing `data/local` directory through explicit configuration.
+Keep each community's data in its own directory. The collector rejects a changed
+community identifier, mail source, or repository identity in an existing store.
+Use `--data` to select a separate store when those identities change.
 
-A new repository needs collection before complete publication. Coverage remains
-unavailable until that collection succeeds. `render --allow-partial` supports
-local inspection. The production publisher rejects incomplete coverage.
+You can add repository entries to an existing community. Collect their history
+before publishing the expanded report. Removed entries no longer contribute to
+that report. Inspect partial results locally with `render --allow-partial`.
 
-## Publication
-
-The CLI collects and renders on demand. Scheduling and publication belong to the
-hosting setup. Reloading a report page retrieves its latest published snapshot.
+Each output directory is an atomic symlink to a complete render. Your publishing
+process must copy its resolved contents and serve the configured `base_path`.

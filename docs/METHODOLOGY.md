@@ -15,10 +15,9 @@ concentration require five eligible observations. Suppressed values remain
 distinct from zero. Partial-source figures describe only collected records.
 
 Participation uses Git author identities, stable GitHub account IDs, and
-normalised mail sender identities. These channels remain separate. Explicit
-identity aliases and Git mailmap information can join known aliases. Display
-names do not establish identity. Bot accounts are excluded from human metrics.
-Unmatched aliases can count one person more than once.
+normalised mail sender identities. These channels remain separate. Display names
+do not establish identity. Identity variations can count one person more than
+once. Bot accounts are excluded from human metrics.
 Work-item counts include automated submissions. Responses must come from a
 human. Automated submissions therefore contribute workload without inflating
 human participation counts.
@@ -68,15 +67,13 @@ mismatches fail the source. Checkpoints retain earlier records and expose
 failure or interrupted collection in coverage. Incremental reads overlap by
 two days. A full reconciliation detects removals and refreshes every item.
 
-The shared development list appears once at Logging scope. Threads use message
-references. Messages without references are not joined by subject. Missing
-references or roots outside the collected period can affect reply metrics.
-Flume's other historical mailing channels and all legacy JIRA records remain
-outside first-release coverage.
+A configured shared development list appears once at community scope. Threads
+use message references. Messages without references are not joined by subject.
+Missing references or roots outside the collected period can affect reply metrics.
+Mailing lists and issue trackers outside the configuration are not collected.
 
-Flume's repository documents dormancy and rework. The dashboard preserves that
-context. Inactive Logging projects appear in a separate catalogue and do not
-contribute to current overview totals.
+An optional inactive-project catalogue is informational and does not contribute
+to overview metrics.
 
 ## Interpretation
 

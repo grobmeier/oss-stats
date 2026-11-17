@@ -1,129 +1,90 @@
 # OSS Stats
 
-A configurable community activity dashboard for open-source projects.
-The Apache Logging configuration covers
-Log4j, Log4j Kotlin, Log4cxx, Log4net, Flume, and the shared Logging development
-list. It includes pull requests, GitHub Issues, Discussions, Git history, and
-official release evidence. It does not calculate sentiment or a health score.
+OSS Stats builds static activity dashboards for open-source communities.
+Configure repositories and a shared development list, collect public data,
+and publish the generated files on any static web host.
 
-This project adapts **Russell Spitzer's
-[Iceberg Community Health](https://github.com/RussellSpitzer/iceberg-community-health)**.
-See [provenance](docs/PROVENANCE.md) for the exact reference revision and
-attribution. Apache-2.0. This project does not claim ASF endorsement.
+Reports cover contributions, pull requests, GitHub Issues and Discussions,
+releases, and mailing-list activity. Charts support monthly and quarterly views.
+Metric definitions and source status accompany the results.
 
-## Local setup
+## Examples
 
-Use Python 3.11 or later, Git, and an authenticated GitHub CLI (`gh`).
-The collector only reads public project data. Use a dedicated credential with
-the least permissions available for public reads.
+The repository includes three example configurations:
+
+| Example | Included projects | Configuration |
+| --- | --- | --- |
+| Apache Commons | Lang and IO | [commons.yaml](config/commons.yaml) |
+| Apache Maven | Core and Resolver | [maven.yaml](config/maven.yaml) |
+| Apache Logging | Log4j, Log4j Kotlin, Log4cxx, Log4net, and Flume | [logging.yaml](config/logging.yaml) |
+
+These catalogues can be extended through configuration.
+An example deployment is available at [stats.grobmeier.de](https://stats.grobmeier.de/).
+Use your own hostname and hosting setup when publishing a dashboard.
+
+## Install
+
+Use Python 3.11 or later on Linux or macOS. Collection also needs Git and
+an authenticated GitHub CLI (`gh`).
 
 ```sh
 python3 -m venv .venv
-.venv/bin/pip install -e '.[dev]'
-.venv/bin/python -m pytest
+.venv/bin/pip install .
+gh auth login
 ```
 
-## Collect and preview
+Prebuilt executable and Python-wheel archives are also supported.
+See [distribution instructions](docs/DISTRIBUTION.md).
 
-Run commands from this repository root. Data and rendered reports remain
-local and ignored by Git.
+## Collect and render
 
-Start with a small live sample. Git history is complete even in sample mode.
-GitHub item counts are bounded per channel. Mail uses the latest completed
-month and the current month. The report labels sampled channels as partial.
-
-```sh
-.venv/bin/oss-stats --data data/local collect --sample 2
-.venv/bin/oss-stats --data data/local render --allow-partial
-.venv/bin/python -m http.server 8129 --bind 127.0.0.1 --directory site
-```
-
-Open [the local dashboard](http://127.0.0.1:8129/logging/).
-The first Git collection can take several minutes.
-
-Collect the full configured history, then render a complete report:
-
-```sh
-.venv/bin/oss-stats --data data/local collect --full
-.venv/bin/oss-stats --data data/local render
-```
-
-Use the same data directory to resume interrupted collection:
-
-```sh
-.venv/bin/oss-stats --data data/local collect
-```
-
-Source checkpoints preserve completed nested reads. A later ordinary collection
-can reuse unchanged items. `--full` deliberately reads every item again and
-reconciles confirmed removals. Use it periodically or after source changes.
-
-`--months 12` selects a shorter initial window. `--projects log4j kotlin`
-limits repository collection. `--request-budget 3000` bounds GitHub requests.
-Omitted Git or mail sources display unavailable, rather than zero.
-Collection exits with status 1 when any source fails or remains unavailable.
-Review coverage before using `render --allow-partial`.
-
-The default history is 72 completed months, with the partial current month
-separate. Branch metadata comes from GitHub. The collector does not assume
-`main`. Configure additional branches explicitly in `config/logging.yaml`.
-
-## Output and data boundaries
-
-- `data/`: private local Parquet snapshots, collection state, and Git caches.
-- `site/logging/`: current static snapshot, reached through an atomic symlink.
-- `site/.logging-snapshots/`: complete older render versions.
-- `metrics.json` and `metrics.csv`: versioned public aggregate exports.
-
-Publish only the resolved static snapshot. Never publish `data/` or the
-repository root. HTML assets use relative links and work below `/logging/`.
-The browser needs no token, live GitHub connection, or database.
-
-Mail and comment bodies are not retained. Internal identity keys do not enter
-public exports. Waiting-work titles are escaped and email addresses are
-omitted. Cross-channel identities remain separate.
-
-See the [methodology](docs/METHODOLOGY.md) and [operations guide](docs/OPERATIONS.md).
-
-## Reuse for another community
-
-The same application supports separate communities through YAML configuration.
-See [configuration and reuse](docs/CONFIGURATION.md). Starter configurations exist
-for Maven Core and Resolver, and Commons Lang and IO. These are initial
-catalogues, not complete inventories of Maven or Commons repositories.
+Choose a configuration and run these commands from the repository root:
 
 ```sh
 .venv/bin/oss-stats --config config/maven.yaml collect
 .venv/bin/oss-stats --config config/maven.yaml render
-.venv/bin/oss-stats --config config/commons.yaml collect
-.venv/bin/oss-stats --config config/commons.yaml render
+.venv/bin/python -m http.server 8129 --bind 127.0.0.1 --directory site
 ```
 
-Each configuration selects its own data directory, output directory, page
-navigation, shared list, and URL path. Adding repositories requires configuration
-changes and collection. It requires no application code changes.
+Open [the local Maven example](http://127.0.0.1:8129/maven/).
+Use another example file or your own YAML file to select a different community.
 
-Range controls update charts automatically. Custom months receive validation.
-Project links retain the selected months and grouping. Cards show the latest
-selected period. Sparklines and absolute changes compare periods within the
-selected interval. Counts of people and response medians are never summed.
-Metric and chart value tables open in dialogs. Reloading the page retrieves the published snapshot.
+The first collection reads the configured history and can take time.
+Later runs reuse checkpoints. A smaller preview is available with
+`collect --sample 2 --months 3` and `render --allow-partial`.
+Sampled results are marked as partial.
 
-Backlog age charts partition open PRs and issues into four disjoint age buckets.
-The newcomer journey shows first-observed PR cohorts, human responses within
-30 days, and merges and return PRs within 90 days. Rates use only fully observed
-windows and retain sample-size limits. See [methodology](docs/METHODOLOGY.md).
+Collection is read-only. It does not change repositories, issues, or discussions.
+The CLI does not schedule jobs or deploy reports.
 
-## Shareable distributions
+## Configure your community
 
-Build a native macOS or Linux executable and a Python-wheel archive with example
-configurations. Recipients can run Maven or another catalogue without cloning
-this repository. See [distribution instructions](docs/DISTRIBUTION.md).
-Native packages include Python and its libraries. Collection still needs Git
-and authenticated GitHub CLI. The manual distribution workflow builds and tests
-platform-specific archives without publishing a release or deploying a website.
+Copy an example file and edit its title, repository catalogue, URL path,
+and optional shared mailing list. Each community has separate data and output
+paths. See [configuration](docs/CONFIGURATION.md) for supported fields.
 
-The installable package, command, and native executable are named `oss-stats`.
-The installed Python package also provides `logging-stats` as a compatibility
-alias for existing operator scripts. The source module remains `logging_stats`.
-The source repository is [grobmeier/oss-stats](https://github.com/grobmeier/oss-stats).
+Publish only the resolved report directory under `site/`. Data, credentials,
+and collection state must stay outside the public web root.
+See [static hosting](docs/DEPLOYMENT.md) and [operation](docs/OPERATIONS.md).
+
+Reports use public observations rather than sentiment analysis or a health score.
+See [methodology](docs/METHODOLOGY.md) for definitions and limitations.
+
+## Development
+
+```sh
+.venv/bin/pip install -e '.[dev,packaging]'
+.venv/bin/python -m pytest
+node --test tests/view.test.cjs
+node --check src/oss_stats/web/app.js
+```
+
+The Python package is `oss_stats`; the command is `oss-stats`.
+Build instructions and standalone checks are in [distribution](docs/DISTRIBUTION.md).
+
+## Licence and attribution
+
+Licensed under [Apache-2.0](LICENSE).
+OSS Stats includes calendar helpers from Russell Spitzer's
+[iceberg-community-health](https://github.com/RussellSpitzer/iceberg-community-health)
+and adapts its reporting approach. See [provenance](docs/PROVENANCE.md) and [NOTICE](NOTICE).

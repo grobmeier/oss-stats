@@ -1,16 +1,18 @@
-# OSS Stats
+OSS Stats
+Copyright 2026 Christian Grobmeier and contributors.
 
-Copyright Christian Grobmeier and contributors.
-
-This project includes adapted code and reporting ideas from Iceberg Ecosystem
-Health, copyright Russell Spitzer, under the Apache License, Version 2.0.
+Includes calendar helper source from iceberg-community-health:
+Copyright Russell Spitzer
+Licensed under the Apache License, Version 2.0.
 https://github.com/RussellSpitzer/iceberg-community-health
 Reference revision: 5e26873783da1849343a7c3dd0403f9ef56240d4.
 
-The upstream project credits metric definitions for contributor concentration,
+The collection, historical reporting, Parquet storage, and static-site approach
+also adapt that project's design.
+
+The upstream NOTICE credits metric definitions for contributor concentration,
 review latency, retention, and release cadence to Patrick McFadin's
 Apache-2.0 cassandra-project-health project:
 https://github.com/pmcfadin/cassandra-project-health
 
-Apache Magpie and the upstream project's datasets are not included.
 See LICENSE and docs/PROVENANCE.md.

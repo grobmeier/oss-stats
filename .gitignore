@@ -13,8 +13,6 @@ site/
 .playwright-cli/
 output/
 
-# Workspace-only planning and task status
 specifications/
-docs/IMPLEMENTATION_SPEC.md
-docs/VALIDATION.md
 TODO_STATE.md
+AGENTS.md

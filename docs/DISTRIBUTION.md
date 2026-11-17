@@ -21,14 +21,12 @@ Run these commands from the extracted directory:
 ./oss-stats --config config/maven.yaml render
 ```
 
-The Maven example initially covers Maven Core and Resolver. The Commons example
+The Maven example covers Maven Core and Resolver. The Commons example
 covers Lang and IO. Expand `projects` to select additional repositories.
-Replace the configuration's `target_url` with your intended publication URL.
 Select `config/commons.yaml` or `config/logging.yaml` to use those examples.
 You can also pass the path to your own YAML file.
 
-Data stays in `data/<dashboard_id>`. The Logging example explicitly retains
-`data/local`. Reports appear under `site/<dashboard_id>`.
+Data stays in `data/<dashboard_id>`. Reports appear under `site/<dashboard_id>`.
 The HTML, JavaScript, CSS, JSON, and CSV form a static website. Publish only the
 resolved report directory. Never publish the private `data` directory.
 Use any static web server to preview or publish the report.
@@ -49,7 +47,7 @@ From the extracted Python archive, install its wheel into an isolated environmen
 
 ```sh
 python3 -m venv .venv
-.venv/bin/pip install ./oss_stats-0.3.1-py3-none-any.whl
+.venv/bin/pip install ./oss_stats-*.whl
 .venv/bin/oss-stats --config config/maven.yaml collect
 .venv/bin/oss-stats --config config/maven.yaml render
 python3 -m http.server 8129 --bind 127.0.0.1 --directory site
@@ -90,13 +88,3 @@ It does not copy the source checkout, environment, caches, or private datasets.
 
 Adapted from Russell Spitzer's Iceberg Community Health under Apache-2.0.
 The exact upstream revision and additional credits are in `PROVENANCE.md` and `NOTICE`.
-
-## Upgrade from the original package name
-
-The distribution name changed from `logging-stats` to `oss-stats` in version 0.3.0.
-When upgrading a Python environment, uninstall the old `logging-stats` package
-before installing the new wheel. The new wheel provides both the `oss-stats`
-command and a `logging-stats` compatibility alias. The native executable is
-named `oss-stats`. Existing YAML files, datasets, and report paths still work.
-The source repository is `grobmeier/oss-stats`. The Python import namespace
-remains `logging_stats` for compatibility.
