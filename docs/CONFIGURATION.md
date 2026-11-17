@@ -52,5 +52,5 @@ local inspection. The production publisher rejects incomplete coverage.
 
 ## Publication
 
-Collection and publication remain manual. The public reload button only checks
-for a newer published report. It preserves the selected range and grouping.
+The CLI collects and renders on demand. Scheduling and publication belong to the
+hosting setup. Reloading a report page retrieves its latest published snapshot.

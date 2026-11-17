@@ -11,11 +11,6 @@ This project adapts **Russell Spitzer's
 See [provenance](docs/PROVENANCE.md) for the exact reference revision and
 attribution. Apache-2.0. This project does not claim ASF endorsement.
 
-The report index is **https://stats.grobmeier.de/**. The Logging report is at
-**https://stats.grobmeier.de/logging/**.
-Refresh is manual. No scheduled collection or publication is enabled.
-See [deployment and refresh](docs/DEPLOYMENT.md).
-
 ## Local setup
 
 Use Python 3.11 or later, Git, and an authenticated GitHub CLI (`gh`).
@@ -112,7 +107,7 @@ Range controls update charts automatically. Custom months receive validation.
 Project links retain the selected months and grouping. Cards show the latest
 selected period. Sparklines and absolute changes compare periods within the
 selected interval. Counts of people and response medians are never summed.
-The reload button checks the latest published snapshot without starting collection.
+Metric and chart value tables open in dialogs. Reloading the page retrieves the published snapshot.
 
 Backlog age charts partition open PRs and issues into four disjoint age buckets.
 The newcomer journey shows first-observed PR cohorts, human responses within
