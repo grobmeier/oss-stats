@@ -57,6 +57,7 @@ def smoke(archive):
             assert row["value"] == len(config["projects"])
             assert len(list(output.glob("*.html"))) == len(config["projects"]) + 1
             assert "Russell Spitzer" in (output / "index.html").read_text()
+            assert 'id="metric-dialog"' in (output / "index.html").read_text()
             assert "function ageBars" in (output / "app.js").read_text()
             assert (output / "view.js").is_file() and (output / "style.css").is_file()
             print("Standalone render passed:", name)

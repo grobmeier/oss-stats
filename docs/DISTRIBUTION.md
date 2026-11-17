@@ -49,7 +49,7 @@ From the extracted Python archive, install its wheel into an isolated environmen
 
 ```sh
 python3 -m venv .venv
-.venv/bin/pip install ./oss_stats-0.3.0-py3-none-any.whl
+.venv/bin/pip install ./oss_stats-0.3.1-py3-none-any.whl
 .venv/bin/oss-stats --config config/maven.yaml collect
 .venv/bin/oss-stats --config config/maven.yaml render
 python3 -m http.server 8129 --bind 127.0.0.1 --directory site
@@ -98,4 +98,5 @@ When upgrading a Python environment, uninstall the old `logging-stats` package
 before installing the new wheel. The new wheel provides both the `oss-stats`
 command and a `logging-stats` compatibility alias. The native executable is
 named `oss-stats`. Existing YAML files, datasets, and report paths still work.
-The source repository and Python import namespace retain their original names.
+The source repository is `grobmeier/oss-stats`. The Python import namespace
+remains `logging_stats` for compatibility.

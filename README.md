@@ -11,6 +11,11 @@ This project adapts **Russell Spitzer's
 See [provenance](docs/PROVENANCE.md) for the exact reference revision and
 attribution. Apache-2.0. This project does not claim ASF endorsement.
 
+The report index is **https://stats.grobmeier.de/**. The Logging report is at
+**https://stats.grobmeier.de/logging/**.
+Refresh is manual. No scheduled collection or publication is enabled.
+See [deployment and refresh](docs/DEPLOYMENT.md).
+
 ## Local setup
 
 Use Python 3.11 or later, Git, and an authenticated GitHub CLI (`gh`).
@@ -126,4 +131,4 @@ platform-specific archives without publishing a release or deploying a website.
 The installable package, command, and native executable are named `oss-stats`.
 The installed Python package also provides `logging-stats` as a compatibility
 alias for existing operator scripts. The source module remains `logging_stats`.
-The GitHub repository currently retains its original `logging-stats` name.
+The source repository is [grobmeier/oss-stats](https://github.com/grobmeier/oss-stats).

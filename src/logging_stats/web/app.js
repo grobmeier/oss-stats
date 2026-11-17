@@ -71,6 +71,7 @@ fetch("./metrics.json", {cache: "no-store"})
   .catch((e) => {
     $("freshness").textContent = e.message;
   });
+$("metric-dialog-close").addEventListener("click", () => $("metric-dialog").close());
 $("reload").addEventListener("click", () => {
   const button = $("reload");
   button.disabled = true;
@@ -386,24 +387,33 @@ function start(report) {
         const card = node("div", undefined, "card");
         card.append(
           node("h3", label(id)),
+          node("p", CommunityView.periodLabel(row), "metric-period"),
           node("div", value(row), "value"),
           node("small", `n=${row.n ?? 0} · ${row.status}`, "status"),
         );
         const series = filtered.filter(r => r.metric === id).sort((a, b) => a.start.localeCompare(b.start));
         card.append(plot([{name: label(id), points: series}], true));
         const change = CommunityView.delta(series);
-        const formatted = change === null ? "Change unavailable" : `${change > 0 ? "+" : ""}${/share|retention/.test(id) ? (change * 100).toFixed(1) + " percentage points" : value({...row, value: change})} from first period`;
+        const formatted = series.length < 2 ? "Single period selected" : change === null ? "Change unavailable for range endpoints" : `${change > 0 ? "+" : ""}${/share|retention/.test(id) ? (change * 100).toFixed(1) + " percentage points" : value({...row, value: change})} vs ${CommunityView.periodLabel(series[0])} (range start)`;
         card.append(node("small", formatted, "delta"));
-        const d = node("details");
-        d.append(
-          node("summary", "Definition"),
-          node("p", report.definitions[id] || ""),
-        );
-        if (row.reason) d.append(node("p", row.reason));
-        card.append(d);
-        const history = node("details"); history.append(node("summary", "Period values"));
-        history.append(table(["Period", "Value", "Coverage"], series.map(r => [r.start.slice(0, 10), value(r), r.status])));
-        card.append(history);
+        const details = node("button", "Details", "metric-details-button");
+        details.type = "button";
+        details.setAttribute("aria-label", "Details for " + label(id));
+        details.setAttribute("aria-haspopup", "dialog");
+        details.addEventListener("click", () => {
+          const content = $("metric-dialog-content");
+          content.replaceChildren();
+          $("metric-dialog-title").textContent = label(id);
+          const context = (project?.name || report.title) + ($("module").value && !repositoryMetric(id) ? " · " + $("module").value : "");
+          content.append(node("p", context, "scope-note"), node("h3", "Definition"), node("p", report.definitions[id] || ""));
+          content.append(node("p", `Card value: ${value(row)} for ${CommunityView.periodLabel(row)}. ${formatted}.`, "scope-note"));
+          if (row.reason) content.append(node("p", row.reason, "notice"));
+          content.append(node("h3", "Period values"));
+          content.append(table(["Period", "Value", "Sample", "Coverage"], series.map(r => [CommunityView.periodLabel(r), value(r), r.n ?? 0, r.status + (r.reason ? " · " + r.reason : "")]), "Each period is calculated separately. The comparison uses the first and last selected periods, not their sum."));
+          $("metric-dialog").showModal();
+          content.scrollTop = 0;
+        });
+        card.append(details);
         cards.append(card);
       }
       if (cards.childNodes.length) {

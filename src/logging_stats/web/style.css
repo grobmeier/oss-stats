@@ -312,3 +312,17 @@ section { scroll-margin-top: 20px; }
 
 .age-chart svg { display: block; width: 100%; height: auto; margin: 12px 0; }
 .waiting a { overflow-wrap: anywhere; }
+
+.card .metric-period { margin: 4px 0 8px; font-size: 12px; color: var(--muted); }
+.card .metric-details-button { align-self: flex-start; margin-top: auto; padding: 6px 10px; font-size: 12px; color: var(--muted); background: transparent; }
+#metric-dialog { box-sizing: border-box; width: min(880px, calc(100vw - 32px)); max-height: calc(100dvh - 48px); overflow: hidden; padding: 22px; border: 1px solid var(--line); border-radius: 12px; color: var(--ink); background: var(--paper, #fff); }
+#metric-dialog::backdrop { background: rgb(15 30 25 / 45%); }
+.dialog-header { flex: 0 0 auto; padding-bottom: 12px; display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.dialog-header h2 { margin: 0; }
+#metric-dialog h3 { font-size: 16px; margin-top: 24px; }
+#metric-dialog[open] { display: flex; flex-direction: column; }
+#metric-dialog-content { min-width: 0; min-height: 0; overflow: auto; }
+#metric-dialog-content:focus-visible { outline: 2px solid #176653; outline-offset: -2px; }
+@media (max-width: 600px) { #metric-dialog { padding: 16px; } }
+
+.card { display: flex; flex-direction: column; }

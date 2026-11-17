@@ -78,5 +78,7 @@ Newcomer labels require known identity history. Archive entries without publicat
 <details><summary>Metric definitions</summary><dl id="definitions"></dl></details></section>
 <section id="coverage"><h2>Coverage</h2><p>Disabled, failed, partial, and unavailable sources are distinct from zero activity. Retained records can be older than this report.</p><div id="sources" class="table-wrap"></div></section>
 <p class="downloads"><a href="./metrics.json">Aggregate JSON</a> · <a href="./metrics.csv">Aggregate CSV</a></p>
-</main><footer>Adapted from <a href="https://github.com/RussellSpitzer/iceberg-community-health">Russell Spitzer’s Iceberg Community Health</a>.
-<a href="https://github.com/grobmeier/logging-stats">Source and provenance</a>. Apache-2.0. Independent project, without claimed ASF endorsement.</footer></body></html>'''
+</main><dialog id="metric-dialog" aria-labelledby="metric-dialog-title">
+<div class="dialog-header"><h2 id="metric-dialog-title">Metric details</h2><button id="metric-dialog-close" type="button" autofocus>Close</button></div>
+<div id="metric-dialog-content" tabindex="0" role="region" aria-label="Metric definition and period values"></div></dialog><footer>Adapted from <a href="https://github.com/RussellSpitzer/iceberg-community-health">Russell Spitzer’s Iceberg Community Health</a>.
+<a href="https://github.com/grobmeier/oss-stats">Source and provenance</a>. Apache-2.0. Independent project, without claimed ASF endorsement.</footer></body></html>'''

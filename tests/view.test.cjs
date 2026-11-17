@@ -21,3 +21,9 @@ test('quarter containment uses the end after the selected last month', () => {
   assert.equal(view.endExclusive('2026-08'), '2026-09-01T00:00:00Z');
   assert.equal(view.endExclusive('2026-12'), '2027-01-01T00:00:00Z');
 });
+
+test('period labels identify monthly, quarterly, and partial periods in UTC', () => {
+  assert.equal(view.periodLabel({start:'2026-10-01T00:00:00Z',grouping:'monthly'}), 'Oct 2026');
+  assert.equal(view.periodLabel({start:'2026-07-01T00:00:00Z',grouping:'quarterly'}), 'Q3 2026');
+  assert.equal(view.periodLabel({start:'2026-11-01T00:00:00Z',grouping:'partial month'}), 'Nov 2026 (partial)');
+});

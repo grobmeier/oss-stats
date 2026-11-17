@@ -43,7 +43,7 @@ def finish_manifest(destination, version, kind):
 
 def build(output, binary=False):
     if sys.platform not in ("darwin", "linux"):
-        raise SystemExit("Distribution builds currently support macOS and Linux. Windows requires portable locking and publication first.")
+        raise SystemExit("Distribution builds support macOS and Linux only.")
     version = importlib.metadata.version("oss-stats")
     output = Path(output).resolve()
     output.mkdir(parents=True, exist_ok=True)
