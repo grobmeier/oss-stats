@@ -374,6 +374,12 @@ function start(report) {
     for (const [title, ids] of groups) {
       const s = section(title),
         cards = node("div", undefined, "cards");
+      const groupRows = ids.map(id => find(id)).filter(Boolean);
+      if (["Issues", "Discussions"].includes(title) && groupRows.length && groupRows.every(row => row.status === "disabled")) {
+        s.append(node("p", "Not enabled on GitHub.", "scope-note"));
+        root.append(s);
+        continue;
+      }
       if (
         $("module").value &&
         ["Issues", "Discussions", "Releases"].includes(title)
@@ -399,8 +405,8 @@ function start(report) {
         const series = filtered.filter(r => r.metric === id).sort((a, b) => a.start.localeCompare(b.start));
         card.append(plot([{name: label(id), points: series}], true));
         const change = CommunityView.delta(series);
-        const formatted = series.length < 2 ? "Single period selected" : change === null ? "Change unavailable for range endpoints" : `${change > 0 ? "+" : ""}${/share|retention/.test(id) ? (change * 100).toFixed(1) + " percentage points" : value({...row, value: change})} vs ${CommunityView.periodLabel(series[0])} (range start)`;
-        card.append(node("small", formatted, "delta"));
+        const formatted = change === null ? "" : `${change > 0 ? "+" : ""}${/share|retention/.test(id) ? (change * 100).toFixed(1) + " percentage points" : value({...row, value: change})} vs ${CommunityView.periodLabel(series[0])} (range start)`;
+        if (formatted) card.append(node("small", formatted, "delta"));
         const details = node("button", "Details", "metric-details-button");
         details.type = "button";
         details.setAttribute("aria-label", "Details for " + label(id));
@@ -411,7 +417,7 @@ function start(report) {
           $("metric-dialog-title").textContent = label(id);
           const context = (project?.name || report.title) + ($("module").value && !repositoryMetric(id) ? " · " + $("module").value : "");
           content.append(node("p", context, "scope-note"), node("h3", "Definition"), node("p", report.definitions[id] || ""));
-          content.append(node("p", `Card value: ${value(row)} for ${CommunityView.periodLabel(row)}. ${formatted}.`, "scope-note"));
+          content.append(node("p", `Card value: ${value(row)} for ${CommunityView.periodLabel(row)}.${formatted ? " " + formatted + "." : ""}`, "scope-note"));
           if (row.reason) content.append(node("p", row.reason, "notice"));
           content.append(node("h3", "Period values"));
           content.append(table(["Period", "Value", "Sample", "Coverage"], series.map(r => [CommunityView.periodLabel(r), value(r), r.n ?? 0, r.status + (r.reason ? " · " + r.reason : "")]), "Each period is calculated separately. The comparison uses the first and last selected periods, not their sum."));
@@ -575,13 +581,7 @@ function start(report) {
         (r) =>
           r.scope === "shared-list" && r.end === end && r.grouping === grouping,
       );
-      s.append(
-        link("Public dev-list archive", report.mail_archive),
-        node(
-          "p",
-          "Public dev list only. Shared counts appear once and are not included in project totals.",
-        ),
-      );
+      s.append(link("Archive", report.mail_archive));
       s.append(
         table(
           ["Metric", "Value", "Sample", "Coverage"],
@@ -662,8 +662,8 @@ function plot(series, compact = false) {
     }); draw();
   });
   const wrap = node("div", undefined, compact ? "spark-wrap" : "chart");
-  if (!rows.length) wrap.append(node("p", "No covered values for this interval."));
-  else wrap.append(svg);
+  if (!rows.length && !compact) wrap.append(node("p", "No data for the selected periods."));
+  else if (rows.length) wrap.append(svg);
   if (!compact) {
     const legend = node("div", undefined, "legend");
     series.forEach((s, i) => { const key = node("span", s.name); key.className = "series-" + i; legend.append(key); });
