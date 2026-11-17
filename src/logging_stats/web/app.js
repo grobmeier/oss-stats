@@ -565,7 +565,7 @@ function start(report) {
       const releases = section("Release evidence");
       releases.append(
         table(
-          ["Version / line", "Date evidence", "Archive"],
+          ["Version / line", "Date evidence", "Release source"],
           (report.releases[scope] || [])
             .sort((a, b) =>
               b.version.localeCompare(a.version, undefined, { numeric: true }),

@@ -50,8 +50,8 @@ DEFINITIONS = {
     "mail_reply_hours": "Median time from a root message to the first message by another human before period end.",
     "mail_unanswered": "Observed root messages created in this period without another human's reply before period end.",
     "mail_unanswered_share": "Unanswered share of root messages created in this period. Missing references can affect threading.",
-    "stable_releases": "Archive-verified stable releases with a known publication timestamp in this period. Undated archive entries are shown separately.",
-    "release_age_days": "Days since the latest dated archive-verified stable release before period end. Other release dates can be unavailable.",
+    "stable_releases": "Stable releases verified against the configured source, either an official archive or published GitHub releases, with a known publication timestamp in this period. Undated archive entries are shown separately.",
+    "release_age_days": "Days since the latest dated stable release verified against the configured release source before period end. Other release dates can be unavailable.",
 }
 for _name, _channel in (("new_pr_authors", "PR authors"), ("new_reviewers", "reviewers"),
                          ("new_issue_participants", "issue participants"), ("new_discussion_participants", "discussion participants"),
